@@ -3,19 +3,7 @@
 namespace esphome {
 namespace ldc1314 {
 
-void LDC1314Button::press_action() {
-  switch (this->action_) {
-    case LDC1314_BUTTON_CHARACTERIZE:
-      this->parent_->start_characterization();
-      break;
-    case LDC1314_BUTTON_CLEAR_CHARACTERIZATION:
-      this->parent_->clear_characterization();
-      break;
-    case LDC1314_BUTTON_CLEAR_OVERRIDES:
-      this->parent_->clear_overrides();
-      break;
-  }
-}
+void LDC1314DiagnosticsButton::press_action() { this->parent_->run_diagnostics(); }
 
 }  // namespace ldc1314
 }  // namespace esphome

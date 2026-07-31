@@ -1,10 +1,14 @@
-// Pre-flight datasheet-conformance check, run once at the end of characterization Stage 0.
+// Datasheet-conformance check, run on demand from the `button:` platform.
 //
 // This is the component's diagnostic half: it measures what the sensors are actually doing under
 // the configuration currently in force, states the datasheet rule that bears on each measurement,
 // and says whether the rule is met. It deliberately reports facts rather than conclusions -- it
 // never claims a root cause, and where an input is genuinely unavailable it reports NOT EVALUATED
 // instead of guessing a value to fill the column.
+//
+// It is a snapshot: the codes it reads describe wherever the target happens to be at the moment
+// the button is pressed. That is exact for the configuration checks (which depend on the sensor
+// frequency, not the target position) but means the amplitude-error line reflects one instant.
 //
 // Two of the three checks cancel fCLK out entirely and are therefore exact regardless of
 // oscillator tolerance or reference-clock source:
@@ -230,7 +234,7 @@ void LDC1314Component::log_preflight_(const PreflightResult &result) {
 
   ESP_LOGI(TAG, " Suggested next experiment");
   ESP_LOGI(TAG, "   %s", this->preflight_suggestion_(result).c_str());
-  ESP_LOGI(TAG, "   Change one variable per run and re-run characterization.");
+  ESP_LOGI(TAG, "   Change one variable per run and re-run this report.");
 
   // The composed register words, decoded. Printed here as well as raw in the CH[n]|/GLOBAL| trace
   // so the conformance figures above can be read against the bits that produced them without

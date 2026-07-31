@@ -4,18 +4,23 @@ Findings from comparing the stock HomeWizard firmware's LDC register configurati
 ([`original-homewizard-boot.md`](original-homewizard-boot.md) §6) against what this ESPHome
 component actually writes, on the same physical board.
 
-> **Status: findings only.** Nothing in the "candidates" section below has been applied. The
-> driver's configuration is unchanged; only the STATUS/ERROR_CONFIG bug (see the last section)
-> was fixed. Config changes are to be evaluated one variable at a time.
+> **Status: resolved — the sweep this document called for has been run on hardware.**
 >
-> **Update:** the manual sweep this document calls for is now automatable. The characterization
-> framework (`.plan`, `TODO.md` Phase 3–4) derives `idrive`/`offset`/`output_gain` the same way —
-> auto-amplitude observation across the full target range, then a fixed-drive envelope
-> measurement — and its own report format supersedes the "candidates" table below once a run is
-> actually performed on this hardware. That hardware run has not happened yet (no physical board
-> was available while building the framework), so the candidates below remain **unmeasured
-> estimates**, not confirmed values — do not promote them without an actual run's report to point
-> to. See `TODO.md` Phase 5 "Ground truth first" for the validation this still needs.
+> The outcome closed the question rather than answering it: `ERR_ALE` is asserted on every channel
+> on every conversion and **cannot be configured away on this board**. Running TI's own
+> auto-amplitude calibration drove `INIT_IDRIVE` to its maximum (31) on all three channels and
+> left it there with `ERR_ALE` still asserted — the device swept its entire drive range without
+> reaching the 1.2–1.8 V amplitude window, so no `IDRIVE` value resolves it.
+>
+> The measurements are nonetheless stable and usable, so the project now **accepts the standing
+> amplitude error** and moves on to application-level decoding. See `design_decisions.md`
+> "Persistent amplitude errors are tolerated, not chased" for the full reasoning.
+>
+> One genuine misconfiguration was found along the way: the coils oscillate at ≈4.9–5.2 MHz while
+> `DEGLITCH` was set to 3.3 MHz, violating datasheet §8.1.7. That is corrected (`10MHZ` is now the
+> component default), but it did not clear `ERR_ALE` either. The candidates below are kept as a
+> record of what was considered; the `idrive: 18 → 23` and `output_gain` entries were **not**
+> adopted on the strength of the arithmetic shown here.
 
 ## What each side writes
 

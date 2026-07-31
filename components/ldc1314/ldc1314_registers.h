@@ -125,12 +125,9 @@ static const uint16_t CLOCK_DIVIDERS_FREF_DIVIDER_MASK = 0x03FF;  // bits 9:0
 
 static const uint16_t DRIVE_CURRENT_IDRIVE_SHIFT = 11;
 
-// INIT_IDRIVEx (bits 10:6) is read-only: the drive current the device's own auto-amplitude
-// calibration settled on for this channel. Only meaningful while CONFIG.RP_OVERRIDE_EN=0 (auto
-// mode); the characterization engine reads it, nothing writes it. See register_map.md and
-// datasheet §7.6.27/§8.1.5.2.
-static const uint16_t DRIVE_CURRENT_INIT_IDRIVE_SHIFT = 6;
-static const uint16_t DRIVE_CURRENT_INIT_IDRIVE_MASK = 0x1F;  // 5 bits
+// INIT_IDRIVEx (bits 10:6) is read-only and only meaningful while CONFIG.RP_OVERRIDE_EN=0. This
+// driver always runs with fixed drive (RP_OVERRIDE_EN=1), so the field is never read -- it stays
+// documented in register_map.md as part of the device's register map, not defined here.
 
 }  // namespace ldc1314
 }  // namespace esphome

@@ -39,20 +39,6 @@ uint8_t LDC1314Component::output_gain_to_value_(OutputGain gain) {
   }
 }
 
-OutputGain LDC1314Component::output_gain_from_value_(uint8_t value) {
-  switch (value) {
-    case 4:
-      return LDC1314_OUTPUT_GAIN_4;
-    case 8:
-      return LDC1314_OUTPUT_GAIN_8;
-    case 16:
-      return LDC1314_OUTPUT_GAIN_16;
-    case 1:
-    default:
-      return LDC1314_OUTPUT_GAIN_1;
-  }
-}
-
 void LDC1314Component::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
@@ -68,8 +54,6 @@ void LDC1314Component::setup() {
     this->mark_failed();
     return;
   }
-
-  this->restore_settings_();
 
   if (!this->apply_config_()) {
     ESP_LOGE(TAG, "Failed to configure device");
@@ -90,27 +74,7 @@ void LDC1314Component::dump_config() {
   ESP_LOGCONFIG(TAG, "  Deglitch filter: %s", deglitch_to_string(this->deglitch_));
   ESP_LOGCONFIG(TAG, "  Report errors on INTB: %s", YESNO(this->report_errors_on_intb_));
 
-  OutputGain effective_gain = this->effective_output_gain_();
-  if (this->override_.armed) {
-    ESP_LOGCONFIG(TAG, "  Output gain: %ux (MANUAL, ARMED; yaml %ux)", output_gain_to_value_(effective_gain),
-                  output_gain_to_value_(this->yaml_output_gain_));
-  } else if (this->calibration_present_) {
-    ESP_LOGCONFIG(TAG, "  Output gain: %ux (calibrated; yaml %ux)", output_gain_to_value_(effective_gain),
-                  output_gain_to_value_(this->yaml_output_gain_));
-  } else {
-    ESP_LOGCONFIG(TAG, "  Output gain: %ux (yaml)", output_gain_to_value_(effective_gain));
-  }
-  ESP_LOGCONFIG(TAG, "  Override: %s", this->override_.armed ? "ARMED" : "disarmed");
-  if (this->calibration_present_) {
-    uint8_t count = 0;
-    for (uint8_t i = 0; i < MAX_CHANNELS; i++) {
-      if (this->calibration_.channel_mask & (1 << i))
-        count++;
-    }
-    ESP_LOGCONFIG(TAG, "  Calibration: present, %u channel(s), v%u", count, this->calibration_.version);
-  } else {
-    ESP_LOGCONFIG(TAG, "  Calibration: none");
-  }
+  ESP_LOGCONFIG(TAG, "  Output gain: %ux", output_gain_to_value_(this->output_gain_));
 
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     const Channel &ch = this->channels_[channel];
@@ -119,17 +83,8 @@ void LDC1314Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  Channel %u:", channel);
     LOG_SENSOR("    ", "Raw value", ch.sensor);
     LOG_BINARY_SENSOR("    ", "Error", ch.error_binary_sensor);
-    LOG_SENSOR("    ", "Calibrated IDRIVE", ch.calibrated_idrive_sensor);
-    LOG_SENSOR("    ", "Calibrated OFFSET", ch.calibrated_offset_sensor);
-    ESP_LOGCONFIG(TAG, "    RCOUNT: 0x%04X, SETTLECOUNT: 0x%04X (yaml)", ch.rcount, ch.settlecount);
-
-    uint16_t offset = this->effective_offset_(channel);
-    uint8_t idrive = this->effective_idrive_(channel);
-    const char *source = this->override_.armed               ? "MANUAL, ARMED"
-                         : this->channel_calibrated_(channel) ? "calibrated"
-                                                               : "yaml";
-    ESP_LOGCONFIG(TAG, "    OFFSET: 0x%04X (%s; yaml 0x%04X)", offset, source, ch.yaml_offset);
-    ESP_LOGCONFIG(TAG, "    IDRIVE: %u (%s; yaml %u)", idrive, source, ch.yaml_idrive);
+    ESP_LOGCONFIG(TAG, "    RCOUNT: 0x%04X, SETTLECOUNT: 0x%04X", ch.rcount, ch.settlecount);
+    ESP_LOGCONFIG(TAG, "    OFFSET: 0x%04X, IDRIVE: %u", ch.offset, ch.idrive);
     ESP_LOGCONFIG(TAG, "    FIN_DIVIDER: %u, FREF_DIVIDER: %u", ch.fin_divider, ch.fref_divider);
   }
 
@@ -143,7 +98,7 @@ void LDC1314Component::dump_config() {
       if (!this->channels_[channel].active())
         continue;
       ESP_LOGD(TAG, "CH[%u]| RCOUNT:0x%04X| OFFSET:0x%04X| SETTLE:0x%04X| CLOCK:0x%04X| DRIVE:0x%04X", channel,
-               this->channels_[channel].rcount, this->effective_offset_(channel),
+               this->channels_[channel].rcount, this->channels_[channel].offset,
                this->channels_[channel].settlecount, this->last_clock_dividers_[channel],
                this->last_drive_current_[channel]);
     }
@@ -155,8 +110,6 @@ void LDC1314Component::dump_config() {
 void LDC1314Component::update() {
   if (this->is_failed())
     return;
-  if (this->is_characterizing())
-    return;  // registers are in a transient, non-production state -- publishing would be garbage
 
   // Multi-channel readback race (docs/knowledge_base.md "Measurement flow"): DATAx is
   // overwritten by that channel's next conversion if not read before it completes. This driver
@@ -176,10 +129,13 @@ void LDC1314Component::update() {
   }
 }
 
-void LDC1314Component::loop() {
-  if (this->char_stage_ != CHAR_STAGE_IDLE) {
-    this->char_tick_();
+void LDC1314Component::run_diagnostics() {
+  PreflightResult result{};
+  if (!this->run_preflight_(&result)) {
+    ESP_LOGW(TAG, "Diagnostics skipped: no channel could be read");
+    return;
   }
+  this->log_preflight_(result);
 }
 
 bool LDC1314Component::verify_identity_() {
@@ -213,30 +169,26 @@ bool LDC1314Component::reset_() {
 bool LDC1314Component::enter_sleep_() {
   // The other CONFIG bits don't matter while asleep -- conversions are stopped and no channel
   // data is produced until the device wakes again with the fully-composed word below.
-  return this->write_byte_16(REG_CONFIG, this->compose_config_(true, true, true));
+  return this->write_byte_16(REG_CONFIG, this->compose_config_(true));
 }
 
 bool LDC1314Component::exit_sleep_(uint16_t config) {
-  // `config` must already have SLEEP_MODE_EN clear (compose_config_(false, ...)) -- writing it is
-  // what exits Sleep Mode and starts conversions.
+  // `config` must already have SLEEP_MODE_EN clear (compose_config_(false)) -- writing it is what
+  // exits Sleep Mode and starts conversions.
   return this->write_byte_16(REG_CONFIG, config);
 }
 
-uint16_t LDC1314Component::compose_config_(bool sleep, bool rp_override, bool auto_amp_dis) const {
+uint16_t LDC1314Component::compose_config_(bool sleep) const {
   uint8_t highest = this->highest_active_channel_();
   bool autoscan = this->active_channel_count_() > 1;
 
-  uint16_t config = CONFIG_RESERVED_BITS;
+  // RP_OVERRIDE_EN=1 / AUTO_AMP_DIS=1 are unconditional: the drive current is always the fixed
+  // IDRIVEx from configuration. The device's own auto-amplitude mode is never enabled, because it
+  // can adjust drive mid-measurement and inject an offset that reads as a step in target position
+  // (SNOA950 §4).
+  uint16_t config = CONFIG_RESERVED_BITS | CONFIG_RP_OVERRIDE_EN | CONFIG_AUTO_AMP_DIS;
   if (sleep) {
     config |= CONFIG_SLEEP_MODE_EN;
-  }
-  if (rp_override) {
-    // Fixed drive current from IDRIVEx, no auto-amplitude drift -- production default. The
-    // characterization engine's AUTO_IDRIVE stage is the only caller that passes false.
-    config |= CONFIG_RP_OVERRIDE_EN;
-  }
-  if (auto_amp_dis) {
-    config |= CONFIG_AUTO_AMP_DIS;
   }
   if (!autoscan) {
     config |= static_cast<uint16_t>(highest) << CONFIG_ACTIVE_CHAN_SHIFT;
@@ -256,7 +208,7 @@ uint16_t LDC1314Component::compose_config_(bool sleep, bool rp_override, bool au
   return config;
 }
 
-bool LDC1314Component::apply_config_(bool rp_override, bool auto_amp_dis) {
+bool LDC1314Component::apply_config_() {
   uint8_t active_count = this->active_channel_count_();
   uint8_t highest = this->highest_active_channel_();
   bool autoscan = active_count > 1;
@@ -316,11 +268,9 @@ bool LDC1314Component::apply_config_(bool rp_override, bool auto_amp_dis) {
   }
 
   // RESET_DEV: only the OUTPUT_GAIN field is meaningful to write here (the RESET bit is a
-  // one-shot action, already handled in reset_()). OUTPUT_GAIN is resolved through the
-  // three-layer model since it is a single device-global value.
-  OutputGain output_gain = this->effective_output_gain_();
+  // one-shot action, already handled in reset_()). OUTPUT_GAIN is device-global, not per-channel.
   uint16_t reset_dev =
-      (static_cast<uint16_t>(output_gain) & RESET_DEV_OUTPUT_GAIN_MASK) << RESET_DEV_OUTPUT_GAIN_SHIFT;
+      (static_cast<uint16_t>(this->output_gain_) & RESET_DEV_OUTPUT_GAIN_MASK) << RESET_DEV_OUTPUT_GAIN_SHIFT;
   if (!this->write_byte_16(REG_RESET_DEV, reset_dev)) {
     ESP_LOGE(TAG, "Failed to write RESET_DEV (output gain)");
     return false;
@@ -329,9 +279,7 @@ bool LDC1314Component::apply_config_(bool rp_override, bool auto_amp_dis) {
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     if (!this->channels_[channel].active())
       continue;
-    uint8_t idrive = this->effective_idrive_(channel);
-    uint16_t offset = this->effective_offset_(channel);
-    if (!this->write_channel_config_(channel, idrive, offset)) {
+    if (!this->write_channel_config_(channel, this->channels_[channel].idrive, this->channels_[channel].offset)) {
       ESP_LOGE(TAG, "Failed to write channel %u configuration", channel);
       return false;
     }
@@ -340,7 +288,7 @@ bool LDC1314Component::apply_config_(bool rp_override, bool auto_amp_dis) {
   // CONFIG is written last: it both applies the remaining global bits and, by clearing
   // SLEEP_MODE_EN, exits Sleep Mode and starts conversions. Registers cannot be changed once
   // conversions have started -- see docs/knowledge_base.md "Initialization sequence".
-  uint16_t config = this->compose_config_(false, rp_override, auto_amp_dis);
+  uint16_t config = this->compose_config_(false);
   if (!this->exit_sleep_(config)) {
     ESP_LOGE(TAG, "Failed to write CONFIG");
     return false;
@@ -456,192 +404,11 @@ uint8_t LDC1314Component::highest_active_channel_() const {
   return highest;
 }
 
-// --- Three-layer value resolution (.plan "Value resolution model") -------------------------
-//
-//   effective(f) = override_armed        ? manual[f]
-//                : channel_calibrated_() ? calibration[f]
-//                :                         yaml[f]
-
-uint8_t LDC1314Component::effective_idrive_(uint8_t channel) const {
-  if (this->override_.armed)
-    return this->override_.idrive[channel];
-  if (this->channel_calibrated_(channel))
-    return this->calibration_.idrive[channel];
-  return this->channels_[channel].yaml_idrive;
-}
-
-uint16_t LDC1314Component::effective_offset_(uint8_t channel) const {
-  if (this->override_.armed)
-    return this->override_.offset[channel];
-  if (this->channel_calibrated_(channel))
-    return this->calibration_.offset[channel];
-  return this->channels_[channel].yaml_offset;
-}
-
-OutputGain LDC1314Component::effective_output_gain_() const {
-  if (this->override_.armed)
-    return static_cast<OutputGain>(this->override_.output_gain);
-  if (this->calibration_present_)
-    return static_cast<OutputGain>(this->calibration_.output_gain);
-  return this->yaml_output_gain_;
-}
-
-bool LDC1314Component::channel_calibrated_(uint8_t channel) const {
-  return this->calibration_present_ && (this->calibration_.channel_mask & (1 << channel)) != 0;
-}
-
-// --- Raw I/O helpers, shared by normal operation and the characterization engine -----------
+// --- Raw I/O helpers, shared by normal operation and the diagnostics report ----------------
 
 bool LDC1314Component::read_channel_raw_(uint8_t channel, uint16_t *raw) { return this->read_byte_16(data_register(channel), raw); }
 
 bool LDC1314Component::read_status_raw_(uint16_t *status) { return this->read_byte_16(REG_STATUS, status); }
-
-bool LDC1314Component::read_init_idrive_(uint8_t channel, uint8_t *init_idrive) {
-  uint16_t raw = 0;
-  if (!this->read_byte_16(drive_current_register(channel), &raw))
-    return false;
-  *init_idrive = static_cast<uint8_t>((raw >> DRIVE_CURRENT_INIT_IDRIVE_SHIFT) & DRIVE_CURRENT_INIT_IDRIVE_MASK);
-  return true;
-}
-
-// --- Settings persistence (ldc1314_settings.h records) -------------------------------------
-
-void LDC1314Component::restore_settings_() {
-  // Hash includes the I2C address so multiple MULTI_CONF hubs on the same device don't collide.
-  std::string addr_key = "ldc1314_cal_" + std::to_string(this->get_i2c_address());
-  std::string ovr_key = "ldc1314_ovr_" + std::to_string(this->get_i2c_address());
-  this->calibration_pref_ = global_preferences->make_preference<CalibrationRecord>(fnv1_hash(addr_key));
-  this->override_pref_ = global_preferences->make_preference<OverrideRecord>(fnv1_hash(ovr_key));
-
-  CalibrationRecord cal{};
-  if (this->calibration_pref_.load(&cal) && cal.version == LDC1314_SETTINGS_VERSION) {
-    this->calibration_ = cal;
-    this->calibration_present_ = true;
-  }
-
-  OverrideRecord ovr{};
-  if (this->override_pref_.load(&ovr) && ovr.version == LDC1314_SETTINGS_VERSION) {
-    this->override_ = ovr;
-  } else {
-    this->seed_override_from_calibration_();
-  }
-}
-
-bool LDC1314Component::save_calibration_(const CalibrationRecord &rec) {
-  this->calibration_ = rec;
-  this->calibration_present_ = true;
-  bool ok = this->calibration_pref_.save(&this->calibration_);
-  global_preferences->sync();
-  return ok;
-}
-
-bool LDC1314Component::save_override_() {
-  bool ok = this->override_pref_.save(&this->override_);
-  global_preferences->sync();
-  return ok;
-}
-
-void LDC1314Component::seed_override_from_calibration_() {
-  // Record B always holds a complete set of values so the `number` entities always show a
-  // sensible starting point -- see .plan "Value resolution model". `armed` is deliberately left
-  // untouched: seeding is not the same action as arming.
-  this->override_.version = LDC1314_SETTINGS_VERSION;
-  this->override_.output_gain =
-      this->calibration_present_ ? this->calibration_.output_gain : static_cast<uint8_t>(this->yaml_output_gain_);
-  for (uint8_t ch = 0; ch < MAX_CHANNELS; ch++) {
-    if (this->channel_calibrated_(ch)) {
-      this->override_.idrive[ch] = this->calibration_.idrive[ch];
-      this->override_.offset[ch] = this->calibration_.offset[ch];
-    } else {
-      this->override_.idrive[ch] = this->channels_[ch].yaml_idrive;
-      this->override_.offset[ch] = this->channels_[ch].yaml_offset;
-    }
-  }
-  this->save_override_();
-}
-
-// --- Manual layer entry points, called live by the number/switch platforms -----------------
-
-void LDC1314Component::set_manual_idrive(uint8_t channel, uint8_t idrive) {
-  this->override_.idrive[channel] = idrive;
-  this->save_override_();
-  if (this->override_.armed && !this->is_characterizing()) {
-    this->apply_config_();
-  }
-}
-
-void LDC1314Component::set_manual_offset(uint8_t channel, uint16_t offset) {
-  this->override_.offset[channel] = offset;
-  this->save_override_();
-  if (this->override_.armed && !this->is_characterizing()) {
-    this->apply_config_();
-  }
-}
-
-void LDC1314Component::set_manual_output_gain(uint8_t gain_value) {
-  this->override_.output_gain = static_cast<uint8_t>(output_gain_from_value_(gain_value));
-  this->save_override_();
-  if (this->override_.armed && !this->is_characterizing()) {
-    this->apply_config_();
-  }
-}
-
-void LDC1314Component::set_override_armed(bool armed) {
-  this->override_.armed = armed ? 1 : 0;
-  this->save_override_();
-  ESP_LOGI(TAG, "Manual override %s", armed ? "ARMED" : "disarmed");
-  if (!this->is_characterizing()) {
-    this->apply_config_();
-  }
-}
-
-// --- Characterization control -- trigger-agnostic entry points (.plan "The engine is
-// independent of its trigger") --------------------------------------------------------------
-
-void LDC1314Component::start_characterization() {
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, "Cannot characterize: component failed setup");
-    return;
-  }
-  if (this->is_characterizing()) {
-    ESP_LOGW(TAG, "Characterization already in progress -- ignoring request");
-    return;
-  }
-  if (this->active_channel_count_() == 0) {
-    ESP_LOGE(TAG, "Cannot characterize: no channels configured");
-    return;
-  }
-  this->char_enter_stage_(CHAR_STAGE_PREPARE);
-}
-
-void LDC1314Component::clear_characterization() {
-  if (this->is_characterizing()) {
-    ESP_LOGW(TAG, "Cannot clear calibration while characterization is in progress");
-    return;
-  }
-  this->calibration_ = CalibrationRecord{};
-  this->calibration_.version = LDC1314_SETTINGS_VERSION;
-  this->calibration_present_ = false;
-  this->calibration_pref_.save(&this->calibration_);
-  global_preferences->sync();
-  ESP_LOGI(TAG, "Calibration cleared -- YAML values restored (unless a manual override is armed)");
-  if (!this->override_.armed) {
-    this->seed_override_from_calibration_();
-  }
-  this->apply_config_();
-}
-
-void LDC1314Component::clear_overrides() {
-  if (this->is_characterizing()) {
-    ESP_LOGW(TAG, "Cannot reset overrides while characterization is in progress");
-    return;
-  }
-  ESP_LOGI(TAG, "Resetting manual overrides to the calibrated (or YAML) values");
-  this->seed_override_from_calibration_();
-  if (this->override_.armed) {
-    this->apply_config_();
-  }
-}
 
 }  // namespace ldc1314
 }  // namespace esphome

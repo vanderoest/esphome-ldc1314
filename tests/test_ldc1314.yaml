@@ -21,7 +21,7 @@ ldc1314:
     address: 0x2A
     update_interval: 60s
     reference_clock: internal
-    deglitch: 3_3MHZ
+    deglitch: 10MHZ
     output_gain: 1
     high_current_drive: false
     sensor_activation_mode: FULL_CURRENT
@@ -69,3 +69,9 @@ binary_sensor:
     ldc1314_id: ldc
     channel: 2
     name: "LDC Channel 2 Error"
+
+button:
+  # On-demand datasheet-conformance report -- see README "Datasheet conformance report".
+  - platform: ldc1314
+    ldc1314_id: ldc
+    name: "LDC diagnostics"

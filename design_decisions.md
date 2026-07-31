@@ -73,122 +73,44 @@ Running log of significant architectural *why* decisions made while producing `.
 
 ---
 
-## Scope amendment: a bounded characterization run is now a driver feature
+## Persistent amplitude errors are tolerated, not chased
 
-**Decision:** `TODO.md` previously excluded "automatic runtime auto-calibration" outright, as a
-bring-up-only procedure that stayed outside the component. That line is amended, not removed.
-What is still excluded is the device *free-running* in TI's auto-amplitude mode
-(`AUTO_AMP_DIS=0`) during normal operation — `RP_OVERRIDE_EN=1`/`AUTO_AMP_DIS=1` remain the only
-production settings, always. What is now in scope is a bounded, user-triggered, one-shot
-characterization run that *temporarily* enters auto-amplitude mode to observe the sensor, derives
-fixed `IDRIVE`/`OFFSET`/`OUTPUT_GAIN` values, and always exits back to fixed drive — on success,
-on failure, and on every abort path, with no exception.
+**Decision:** The driver publishes every conversion result regardless of `STATUS`, and does not
+attempt to configure its way out of a standing amplitude error. `DATAx.ERR_WD` (watchdog timeout,
+which the datasheet defines as invalid data) is the one flag that suppresses a reading; under-range,
+over-range and amplitude flags publish normally and only raise the diagnostic binary sensor.
 
-**Alternatives considered:**
-- Leave the exclusion as originally written and keep characterization as an external script or a
-  human-followed protocol (the original hardware bring-up `.plan`'s Phase 1 sweep).
-- Let the device free-run in auto-amplitude mode whenever no calibration is stored yet, deriving
-  it implicitly over time instead of via an explicit run.
+**Context:** On the HomeWizard watermeter board, `ERR_ALE` (amplitude-low) is asserted on every
+channel on every conversion. An investigation established:
 
-**Why:** The HomeWizard reference evidence (`docs/homewizard_reference_config.md`) reframed what
-this procedure actually is. The stock firmware's only per-sensor changes from TI's Table 45
-defaults were `DRIVE_CURRENT` and `OFFSET` — exactly the two values TI's own auto-amplitude
-procedure (datasheet §8.1.5.2) derives. That is a sensor characterization step, not a volumetric
-calibration, and it generalizes to any LDC1314 application (a knob, a slide, a meter disc) rather
-than being watermeter-specific — which is why it belongs in the driver rather than staying an
-external protocol. The second alternative — implicit free-running auto-amplitude — is exactly the
-behavior SNOA950 §4 warns against: the LDC may adjust current mid-measurement and inject a step
-that reads as target movement, so it can never be the default state, only a deliberately-entered
-one with a clear beginning and end.
+- The device's own auto-amplitude calibration drives `INIT_IDRIVE` to 31 — its maximum — on all
+  three channels and leaves it there, with `ERR_ALE` continuously asserted. *(Measured.)* The
+  device therefore swept its entire drive range without reaching the 1.2–1.8 V target, so no
+  `IDRIVE` value can resolve the flag.
+- The coils oscillate at ≈4.9–5.2 MHz, against a configuration inherited from the datasheet's
+  §8.2.4 worked example, which targets a 2.4 MHz / 6.6 kΩ coil. *(Measured; frequency derived from
+  the DATA ratio and the nominal internal oscillator.)*
+- `DEGLITCH` was consequently set below the sensor frequency, violating §8.1.7. *(Datasheet rule,
+  measured inputs.)* Correcting it to `10MHZ` is worthwhile on its own terms and is now the
+  component default — but it did not clear `ERR_ALE`.
+- Measurements are nonetheless stable and usable: the codes track the rotating target
+  reproducibly, and a controlled 3-litre draw counted the expected rotations.
 
----
+**Why:** `ERR_AE` is a warning about oscillation amplitude, not a statement that the frequency
+count is wrong — §7.6.14 raises it when amplitude has not settled to the target window, while the
+conversion itself still completes. Suppressing readings on it would discard a working measurement
+for a condition this hardware appears unable to leave. For `ERR_ALE` specifically the failure mode
+is also the recoverable one: the datasheet notes over-amplitude activates the internal ESD clamp
+and shifts the sensor frequency to an invalid state, whereas under-amplitude reduces SNR and warns.
 
-## Three-layer value resolution: YAML seed, stored calibration, armed manual override
+**What this closes:** an earlier revision of this component carried a full sensor-characterization
+framework — a six-stage state machine that entered TI's auto-amplitude mode, derived
+`IDRIVE`/`OFFSET`/`OUTPUT_GAIN`, and stored them in NVS ahead of the YAML values. It was removed
+once the above was established: it existed to find drive parameters that would clear the amplitude
+error, and on this hardware no such parameters exist. Configuration is YAML-only again, and effort
+moves to application-level decoding (Clarke transform, rotation detection, litre counting), which
+per `CLAUDE.md` lives outside this component.
 
-**Decision:** `idrive`, `offset` and `output_gain` resolve through three layers rather than one:
-a YAML seed (used only until a calibration exists), a stored characterization record (wins over
-YAML), and a manual override record edited via `number` entities that only takes effect once
-armed by a `switch`. Disarming the switch is the "revert to calibrated" action — instant, exact,
-and non-destructive, since the manual values are preserved in their own record rather than
-overwriting the calibration.
-
-**Alternatives considered:**
-- A YAML value written by the user counts as a hard override the driver must never touch.
-- One NVS record instead of two, with manual edits and characterization results sharing the same
-  storage.
-
-**Why:** The first alternative was the initial design and was explicitly rejected once actual
-runtime tuning entered the picture: if writing `idrive: 18` in YAML meant "never touch this,"
-there would be no way to benefit from characterization without editing and reflashing, which
-defeats most of the feature's point. It also would have made the `switch`'s arm/disarm flag
-redundant, since "value present in YAML" would already mean "overridden." The second
-alternative — one record for both manual edits and calibration — would make "revert to
-calibrated" mean "the calibrated value has been overwritten by whatever was last dialed in,"
-turning revert into "re-run characterization," a several-minute physical procedure to undo a
-slider drag. Two records cost a small amount of flash and a few extra lines of resolution logic;
-in exchange, arming and disarming the override is a clean, reversible A/B between "what I derived"
-and "what I'm trying," which is the actual behavior wanted.
-
----
-
-## `min(INIT_IDRIVE)` as the characterization's IDRIVE recommendation
-
-**Decision:** During the auto-amplitude observation stage, the characterization engine derives
-the recommended `IDRIVE` as the *minimum* `INIT_IDRIVE` value observed across the full target
-motion — never the mean, and never the maximum.
-
-**Alternatives considered:**
-- Average the observed `INIT_IDRIVE` values.
-- Use the maximum observed value (closest target approach).
-
-**Why:** `V_OSC = 4·R_P·IDRIVE/π` is linear in drive current, and weaker magnetic coupling
-(target farthest away) presents the highest effective `R_P`, which is exactly where the device's
-own auto-calibration settles on its lowest current code. Taking the minimum over the full sweep
-therefore reproduces TI's own stated calibration condition — "position the target at the maximum
-planned operating distance" (datasheet §8.1.5.2, SNAA221B §6) — without requiring a physically
-impossible ask of this driver's target class: holding a continuously moving target motionless at
-one specific point. It is also the safer failure direction. Over-driving trips the internal ESD
-clamp and silently shifts the sensor into an invalid frequency state with no guaranteed error
-flag; under-driving only raises the recoverable `ERR_ALE` warning against valid data. SNOA950 §8
-gives the identical rule independently for multi-sensor boards: when per-channel tuning disagrees,
-use the lowest value across channels.
-
----
-
-## Guided-run prompt text lives in configuration, not in the component
-
-**Decision:** The characterization procedure needs to tell the user when to start and stop
-moving the target to be usable as a guided, black-box run — but the two prompt strings
-(`characterization.prompts.start`/`.stop`) are plain configurable text with target-neutral
-defaults, never hardcoded application wording.
-
-**Alternatives considered:**
-- Hardcode watermeter-appropriate wording ("open the tap") directly into the component, since
-  that's the reference application driving this feature's design.
-- Leave the user to infer when to act from stage names in the log, with no explicit prompt at all.
-
-**Why:** The first alternative is precisely the boundary this project draws everywhere else —
-CLAUDE.md forbids watermeter-specific logic in the driver, and a driver that prints "open the
-tap" is a watermeter driver in a way a config-supplied string is not. It costs nothing to make the
-two moments configurable, and it's the only place in the whole characterization feature where
-application wording is allowed in at all — everywhere else the boundary holds exactly as it does
-for the rest of the component. The second alternative would fail the feature's own goal: a
-black-box procedure that tells the user what to do, not one that expects the user to have already
-read the source or the `.plan` to know when "Stage 1: auto drive" means "start moving the target."
-
----
-
-## Persistence and timing stay behind ESPHome's own abstractions
-
-**Decision:** The settings store uses `global_preferences`/`ESPPreferenceObject`
-(`esphome/core/preferences.h`) exclusively, never a platform NVS API directly; all timing in the
-characterization engine uses `millis()` from `esphome/core/hal.h`, never a platform-specific timer
-call. No `#ifdef USE_ARDUINO`/`USE_ESP_IDF` branching exists anywhere in the new code.
-
-**Why:** The existing driver was already framework-agnostic by construction — every dependency
-came from `esphome/core/*` or `esphome/components/i2c`, and the project's test fixtures moved from
-Arduino to ESP-IDF without touching a single line of the component's C++. The characterization
-feature adds the two categories of code (persistence, timing) where framework assumptions most
-commonly creep in, so keeping both routed through ESPHome's own abstractions was the one rule most
-worth being deliberate about — it costs nothing today and keeps the component honestly
-framework-agnostic rather than "framework-agnostic until you look at the new feature."
+**What remains from it:** the on-demand datasheet-conformance report (`button:` platform), which
+is what identified the `DEGLITCH` violation, plus the `STATUS` per-bit decoding and register write
+tracing that made the investigation possible at all.
