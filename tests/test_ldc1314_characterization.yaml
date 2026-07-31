@@ -1,0 +1,153 @@
+# Exercises the characterization framework (characterization:, number:, switch:, button:) against
+# the LOCAL component tree. The other committed fixtures pull from `github://vanderoest/...`, which
+# does not yet carry this code -- this one is the only committed fixture that actually builds the
+# characterization engine, the three-layer settings store, and the new platforms. See .plan
+# "Verification" and TODO.md Phase 5.
+esphome:
+  name: ldc1314-characterization-test
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+
+i2c:
+  sda: GPIO26
+  scl: GPIO25
+
+ldc1314:
+  - id: ldc
+    address: 0x2A
+    update_interval: 1s
+    reference_clock: internal
+    deglitch: 3_3MHZ
+    output_gain: 1
+    characterization:
+      restore: true
+      idle_duration: 10s
+      stage_duration: 60s
+      verify_duration: 30s
+      sample_interval: 20ms
+      progress_interval: 5s
+      headroom: 25%
+      unify_channels: false
+      # A worked, application-specific example of the target-neutral defaults -- see .plan "The
+      # reference application is a water meter". The component itself never says "faucet".
+      prompts:
+        start: "Open the faucet fully now and leave it running"
+        stop: "You can close the faucet now"
+      calibrated_output_gain:
+        name: "LDC calibrated output gain"
+
+sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
+    calibrated_idrive:
+      name: "LDC CH0 calibrated IDRIVE"
+    calibrated_offset:
+      name: "LDC CH0 calibrated OFFSET"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
+    calibrated_idrive:
+      name: "LDC CH1 calibrated IDRIVE"
+    calibrated_offset:
+      name: "LDC CH1 calibrated OFFSET"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
+    calibrated_idrive:
+      name: "LDC CH2 calibrated IDRIVE"
+    calibrated_offset:
+      name: "LDC CH2 calibrated OFFSET"
+
+binary_sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Error"
+
+number:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    idrive:
+      name: "LDC CH0 IDRIVE override"
+    offset:
+      name: "LDC CH0 OFFSET override"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    idrive:
+      name: "LDC CH1 IDRIVE override"
+    offset:
+      name: "LDC CH1 OFFSET override"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    idrive:
+      name: "LDC CH2 IDRIVE override"
+    offset:
+      name: "LDC CH2 OFFSET override"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    output_gain:
+      name: "LDC output gain override"
+
+switch:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    override:
+      name: "LDC manual override"
+      entity_category: config
+
+button:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    characterize:
+      name: "LDC characterize"
+    clear_characterization:
+      name: "LDC clear calibration"
+      entity_category: config
+    clear_overrides:
+      name: "LDC reset overrides to calibrated"
+      entity_category: config
+
+# Physical-pushbutton triggering needs no component support at all -- a plain
+# `binary_sensor: platform: gpio` with `on_multi_click: [... - ldc1314.characterize: ldc]` calls
+# the same action this button entity does. See README.md and .plan "The engine is independent of
+# its trigger" for the worked example; omitted here since this fixture has no such pin wired.

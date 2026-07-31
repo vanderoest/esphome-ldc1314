@@ -3,8 +3,7 @@ from esphome.components import binary_sensor
 import esphome.config_validation as cv
 from esphome.const import DEVICE_CLASS_PROBLEM
 
-from . import CONF_LDC1314_ID, LDC1314Component
-from .sensor import CONF_CHANNEL, MAX_CHANNEL_INDEX
+from . import CONF_CHANNEL, CONF_LDC1314_ID, MAX_CHANNEL_INDEX, LDC1314Component
 
 DEPENDENCIES = ["ldc1314"]
 

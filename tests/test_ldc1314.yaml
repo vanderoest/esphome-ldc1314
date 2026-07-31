@@ -4,7 +4,7 @@ esphome:
 esp32:
   board: esp32dev
   framework:
-    type: arduino
+    type: esp-idf
 
 logger:
 
@@ -46,6 +46,15 @@ sensor:
     fin_divider: 1
     fref_divider: 2
     idrive: 18
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
 
 binary_sensor:
   - platform: ldc1314
@@ -56,3 +65,7 @@ binary_sensor:
     ldc1314_id: ldc
     channel: 1
     name: "LDC Channel 1 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Error"

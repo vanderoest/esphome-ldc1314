@@ -7,6 +7,15 @@ component actually writes, on the same physical board.
 > **Status: findings only.** Nothing in the "candidates" section below has been applied. The
 > driver's configuration is unchanged; only the STATUS/ERROR_CONFIG bug (see the last section)
 > was fixed. Config changes are to be evaluated one variable at a time.
+>
+> **Update:** the manual sweep this document calls for is now automatable. The characterization
+> framework (`.plan`, `TODO.md` Phase 3–4) derives `idrive`/`offset`/`output_gain` the same way —
+> auto-amplitude observation across the full target range, then a fixed-drive envelope
+> measurement — and its own report format supersedes the "candidates" table below once a run is
+> actually performed on this hardware. That hardware run has not happened yet (no physical board
+> was available while building the framework), so the candidates below remain **unmeasured
+> estimates**, not confirmed values — do not promote them without an actual run's report to point
+> to. See `TODO.md` Phase 5 "Ground truth first" for the validation this still needs.
 
 ## What each side writes
 
@@ -125,9 +134,15 @@ With `fREF` = 43.4 MHz ÷ 2 ≈ 21.7 MHz (internal oscillator):
 - channel switch = `692 ns + 5/fREF` ≈ **0.9 µs**
 - ⇒ ≈921 µs per channel, ≈**2.8 ms** for a 3-channel scan ⇒ ≈**360 scans/s** available
 
-An `update_interval: 1s` therefore consumes roughly 0.3 % of the samples the hardware produces.
-A rotating vane sampled at 1 Hz aliases into what looks like noise, which is consistent with the
-observed ±6 code jitter while water was confirmed flowing.
+An `update_interval: 1s` therefore consumes roughly 0.3 % of the samples the hardware produces —
+margin, not a bottleneck.
+
+**Correction:** an earlier version of this section called the ~9 s period between peaks "an
+alias, not the rotation rate." That was wrong. A controlled 3-litre ground-truth test (three
+rotations counted between tap-on and tap-off) confirmed the ~9 s period *is* the real rotation
+rate (~0.111 Hz), giving roughly 9 samples per rotation at 1 Hz sampling — comfortably above
+Nyquist, with no aliasing involved. The ±6 code jitter noted above is amplitude-error noise from
+the under-driven coil (see the `idrive` candidate above), not a sampling artifact.
 
 (If the stock firmware instead drives `CLKIN` from an external 40 MHz source, `fREF` = 20 MHz and
 per-channel dwell works out to almost exactly 1.000 ms — matching the 1 kSPS target the datasheet
