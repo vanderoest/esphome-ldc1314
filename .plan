@@ -1,0 +1,242 @@
+# LDC1314 ESPHome Component — Implementation Plan
+
+Status: drafted, pending review. Do not begin implementation until this plan is accepted (see CLAUDE.md).
+
+This plan assumes `docs/knowledge_base.md`, `register_map.md`, and the converted docs/summaries under `docs/` and `docs/summaries/` have been read and are the primary technical reference throughout implementation. `design_decisions.md` records the *why* behind the architectural choices below and should be extended (not rewritten) as further decisions are made during implementation.
+
+## 1. Project Goals
+
+### What belongs inside the ESPHome component
+
+- I2C communication with the LDC1312/LDC1314: register reads/writes, device identification (`DEVICE_ID`/`MANUFACTURER_ID`), reset, and Sleep↔Normal mode sequencing (see `docs/knowledge_base.md` "Initialization sequence").
+- Configuration of every documented register relevant to acquiring raw measurements: per-channel `RCOUNTx`, `SETTLECOUNTx`, `CLOCK_DIVIDERSx`, `DRIVE_CURRENTx`, `OFFSETx`; global `CONFIG`, `MUX_CONFIG`, `RESET_DEV.OUTPUT_GAIN`, `ERROR_CONFIG`.
+- Publishing raw per-channel measurements: the conversion code (`DATAx`) and/or the frequency ratio it represents, as plain ESPHome `sensor::Sensor` values.
+- Publishing device/channel diagnostics: `STATUS`-derived error flags, DRDY/UNREADCONVx-based staleness detection, identification-mismatch detection at setup.
+- Correct handling of the documented protocol quirks: Sleep-Mode-only configuration writes, `RESET_DEV` never reading back, the multi-channel data-readback race condition (`docs/knowledge_base.md` "Measurement flow").
+
+### What does NOT belong inside the component
+
+- Any conversion from raw conversion codes to physical units (distance, liters, flow rate) — see `design_decisions.md` "Publish raw values, not liters/flow".
+- Any multi-channel combination logic specific to a downstream application (e.g. quadrature/Clarke-style decoding for a rotating target) — see `design_decisions.md` "Keep application-specific decoding... outside the driver".
+- Sensor/coil physical design guidance (this lives in SNOA930, which is out of scope for the driver regardless of its documentation-gap status — see `docs/knowledge_base.md` "Open questions").
+- Auto-calibration as an *automatic* runtime behavior — it's a documented bring-up/prototyping procedure (`docs/summaries/drive_configuration_summary.md`, `docs/summaries/rp_variation_summary.md`), not something the driver should silently perform during normal operation. It may be exposed later as an explicit, user-triggered action if there's demand, but is out of scope for the initial iterations below.
+
+### Device scope (v1: LDC1314 only)
+
+The initial implementation targets **only the LDC1314** (4-channel, 12-bit). No code is written for the LDC1312 (2-channel, same 12-bit family), or for the LDC1612/LDC1614 (2/4-channel, 28-bit family) in this pass. However, the architecture in §2 deliberately avoids assumptions that would force a rewrite to add them later:
+
+- The LDC1312 is architecturally trivial to add later — it shares the LDC1314's exact register map and formulas (both covered by datasheet SNOSCZ0A, both in `register_map.md`), just with 2 channels instead of 4. Keeping the channel count behind a single named constant (§2) is the only precaution this requires, and costs nothing now.
+- The LDC1612/LDC1614 are a materially bigger undertaking: they use a **different datasheet** (SNOSCY9, not fetched or researched in this pass — see `docs/knowledge_base.md` "Open questions" for the equivalent gap already flagged for SNOA930) and a **different register layout** for measurement data (28-bit results split across MSB/LSB register pairs, per the datasheet's own cross-references to "the LDC161x datasheet"). This plan does not claim architectural readiness for that family beyond "the register constants live in one header, so adding a second header for a different layout doesn't require touching the read/parse logic for LDC1314." Full LDC1612/1614 support would need its own documentation pass before an architecture claim is meaningful.
+- No `device_family`/`model` YAML option or branching logic is introduced now — that would itself be "writing code for" the other devices ahead of scope. See `design_decisions.md` for the reasoning.
+
+### Separation between hardware driver and application logic
+
+The component's public surface is: register configuration in, raw numbers + diagnostics out. Everything past that boundary (what a "raw number going up" means for a specific meter, encoder, or button) is the consuming YAML's job, via `template` sensors, `sensor.filter`, or external automation — see §7 "Migration strategy" for how an existing watermeter setup adopts this boundary.
+
+## 2. Architecture
+
+Grounded in current ESPHome external-component conventions (`esphome.io/components/external_components`, fetched during planning) and the ADS1115 component as the concrete structural precedent (`esphome.io/components/sensor/ads1115.html`) — see `design_decisions.md` for why this precedent was chosen over a bespoke structure.
+
+Scoped to the LDC1314 only (§1 "Device scope"); two low-cost precautions keep the door open for the LDC1312 specifically, without adding any code paths for it:
+- Channel-count bounds (4) live behind one named constant (`ldc1314.h`), not scattered literals — so a future LDC1312 variant would change one value plus a schema validator, not the read/write logic.
+- Register addresses/bit-fields live entirely in `ldc1314_registers.h`, matching `register_map.md` 1:1 — since the LDC1312 shares this exact register map, that header would need zero changes to support it later.
+
+No equivalent precaution is taken for the LDC1612/LDC1614 beyond this same header separation, since their register layout is genuinely different and undocumented here (see "Device scope" above) — pretending otherwise would be a false architectural promise.
+
+### Directory layout
+
+Develop as a standalone `external_components` repo/folder for iterations 0–8 (fastest iteration loop, no upstream review overhead); revisit moving it into `esphome/components/ldc1314/` only at iteration 9 (upstream readiness), if pursued.
+
+```
+components/
+  ldc1314/
+    __init__.py          # hub: LDC1314Component, CONFIG_SCHEMA, i2c address, global CONFIG/MUX_CONFIG options
+    sensor.py             # per-channel platform: raw sensor, channel index, per-channel register options
+    ldc1314.h
+    ldc1314.cpp
+    ldc1314_registers.h   # register address + bit-field constants, generated to match register_map.md 1:1
+```
+
+### Python code generation
+
+- `__init__.py` defines the hub schema (`CONF_ID`, I2C address defaulting per §7.5.1 of the datasheet — 0x2A/0x2B depending on ADDR pin, though the driver only *talks* to whichever address the user configures; it doesn't control the ADDR pin itself), global config options (reference clock source, deglitch bandwidth, error-reporting enables), and registers the hub as both an `i2c::I2CDevice` and a `cg.Component`/`PollingComponent` in codegen.
+- `sensor.py` defines the per-channel platform schema: `ldc1314_id` (parent hub reference), `channel` (0–3, validated against the parent's channel count), the raw-value `sensor::Sensor` schema (via `sensor.sensor_schema`), and per-channel register options (`rcount`, `settlecount`, `idrive`, `offset`, clock dividers) with datasheet-derived defaults/bounds documented in schema comments (e.g. RCOUNT `0x2000` diminishing-returns note from `docs/summaries/optimizing_resolution_summary.md`).
+- Shared `CONF_*` constants centralized only once actually shared across `__init__.py`/`sensor.py`, per upstream convention (see §6).
+
+### C++ classes
+
+- `LDC1314Component : public PollingComponent, public i2c::I2CDevice` — owns device-level state: setup-time identification check, reset, Sleep-Mode-gated register writes for global config, and a fixed array (or small vector, sized at codegen time) of registered channel pointers.
+- `LDC1314Channel` — per-channel raw-value `sensor::Sensor*` plus its resolved register settings (RCOUNTx, etc.), owned by the hub and populated by `sensor.py` via `cg.new_Pvariable` + a `register_channel()` call on the hub.
+- `update()` (from `PollingComponent`) reads `STATUS` first (if diagnostics/error-reporting enabled), then each active channel's `DATAx`, publishing raw values and clearing the appropriate flags — following the read order from `docs/knowledge_base.md` "Error handling" to avoid losing channel-error attribution.
+- No heap allocation after `setup()` (upstream requirement, see §6) — channel array size fixed at codegen time from the YAML.
+
+### YAML interface
+
+See §3.
+
+### Sensors
+
+Per channel: one raw-value `sensor::Sensor` (conversion code or frequency ratio — decide the default unit in iteration 4, see roadmap; likely raw code by default with an optional `unit_of_measurement: null` since it has no physical unit).
+
+### Diagnostics
+
+Iteration 6 adds optional per-channel error `binary_sensor`s (or a shared text_sensor summarizing the last STATUS error) and a setup-time DEVICE_ID/MANUFACTURER_ID mismatch log warning — all gated behind explicit YAML opt-in, not created by default, per ESPHome's "all entities optional" convention.
+
+### Configuration options
+
+Full option surface accumulates through iterations 3–7; final shape documented in iteration 8 (documentation) rather than frozen here, since register-level config (§2) is already fully known from `register_map.md` but the *YAML ergonomics* (raw register values vs. friendly units like Hz/µs) are a design choice to make incrementally, informed by what iteration 4 (Channel 0 working end-to-end) reveals about what's actually painful to configure by hand.
+
+## 3. Public API (YAML)
+
+Hub + per-channel, ADS1115-style:
+
+```yaml
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+ldc1314:
+  - id: my_ldc
+    address: 0x2A
+    reference_clock: internal     # or: external (requires clkin config once clocking is wired up)
+    deglitch: 3.3MHz              # one of 1MHz / 3.3MHz / 10MHz / 33MHz
+
+sensor:
+  - platform: ldc1314
+    ldc1314_id: my_ldc
+    channel: 0
+    name: "LDC Channel 0 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    idrive: 18
+    update_interval: 60s
+  - platform: ldc1314
+    ldc1314_id: my_ldc
+    channel: 1
+    name: "LDC Channel 1 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    idrive: 18
+```
+
+Notes:
+- `update_interval` lives on the hub (it's a `PollingComponent`), not per-sensor — the per-sensor placement above is illustrative of ESPHome's usual sensor schema and will be corrected to hub-level once iteration 0 confirms the component skeleton; recorded here as an open question to resolve in iteration 0, not a final decision.
+- Register-valued options (`rcount`, `settlecount`, `idrive`) accept raw datasheet values initially (iteration 3); friendlier units (e.g. `settle_time: 8us`) are a candidate for iteration 7, not a blocker for earlier iterations.
+
+## 4. Development Roadmap
+
+Each iteration: objective, implementation tasks, expected files, acceptance criteria, risks.
+
+### Iteration 0 — Project skeleton
+
+- **Objective:** an `external_components`-loadable, empty `ldc1314:` hub that compiles.
+- **Tasks:** create `components/ldc1314/{__init__.py,ldc1314.h,ldc1314.cpp}` with a minimal `LDC1314Component : public PollingComponent, public i2c::I2CDevice` (empty `setup()`/`update()`/`dump_config()`); minimal `CONFIG_SCHEMA` (just `id` + `address`); a test YAML.
+- **Expected files:** `components/ldc1314/__init__.py`, `.h`, `.cpp`; `tests/test_iteration0.yaml` (or equivalent, exact test layout decided in iteration 0 per §5).
+- **Acceptance criteria:** `esphome compile` succeeds on the test YAML; no sensors yet.
+- **Risks:** none significant — this is pure scaffolding, but pins down the hub-vs-per-sensor `update_interval` question from §3.
+
+### Iteration 1 — DEVICE_ID
+
+- **Objective:** verify device identity at startup.
+- **Tasks:** implement raw I2C register read (8-bit pointer + 16-bit read, per `register_map.md` protocol notes); read `DEVICE_ID` (0x7F) and `MANUFACTURER_ID` (0x7E) in `setup()`; log a warning (not a hard failure — device may still partially work, and false negatives from I2C noise shouldn't brick setup) on mismatch.
+- **Expected files:** `ldc1314.h`/`.cpp` register I/O helpers, `ldc1314_registers.h` with the ID register constants.
+- **Acceptance criteria:** compiles; on real hardware, log shows the expected `0x3054`/`0x5449` values.
+- **Risks:** I2C address default (0x2A vs 0x2B) — must be user-configurable from iteration 0, not assumed.
+
+### Iteration 2 — Reset
+
+- **Objective:** implement device reset as part of setup.
+- **Tasks:** write `RESET_DEV.RESET_DEV=1`; since the bit never reads back (per `register_map.md`), follow with a fixed delay and re-verify via a DEVICE_ID re-read (reusing iteration 1's logic) rather than polling for completion.
+- **Expected files:** `ldc1314.cpp` (setup sequencing).
+- **Acceptance criteria:** setup logs show reset → re-verified identity, in that order, on real hardware.
+- **Risks:** delay value needs to be empirically safe; datasheet gives no explicit reset-complete timing, only the wake-up time (`tWAKEUP`=2ms) for the SD-pin case — validate against real hardware in this iteration rather than guessing.
+
+### Iteration 3 — Register configuration
+
+- **Objective:** implement the full Sleep-Mode-gated configuration write sequence.
+- **Tasks:** implement global register writes (`CONFIG`, `MUX_CONFIG`, `ERROR_CONFIG`) and the Sleep→configure→exit-Sleep sequencing rule from `docs/knowledge_base.md`; `CONFIG` write must be last (it both applies remaining bits and exits Sleep Mode).
+- **Expected files:** `ldc1314.cpp`, `ldc1314_registers.h` (bit-field constants for CONFIG/MUX_CONFIG/ERROR_CONFIG).
+- **Acceptance criteria:** register writes verified by read-back (where readable) on real hardware; device transitions from Sleep to Normal mode and starts free-running conversions (verifiable by watching DATA0 change if a sensor is attached, or by STATUS.DRDY toggling).
+- **Risks:** getting the write-ordering constraint wrong silently produces a misconfigured device rather than an error — needs explicit hardware verification, not just compile success.
+
+### Iteration 4 — Channel 0
+
+- **Objective:** one working raw sensor end-to-end.
+- **Tasks:** `sensor.py` platform schema for a single channel; per-channel register writes (`RCOUNT0`, `SETTLECOUNT0`, `CLOCK_DIVIDERS0`, `DRIVE_CURRENT0`); `update()` reads `DATA0` and publishes it.
+- **Expected files:** `components/ldc1314/sensor.py`; `ldc1314.h`/`.cpp` channel-read logic.
+- **Acceptance criteria:** with a real sensor coil on channel 0, the published value changes when a metal target moves near the sensor (manual bring-up test, §5).
+- **Risks:** resolves the "raw code vs. frequency ratio" unit decision from §2/§3 — pin this down here, not earlier, once there's a real value to look at.
+
+### Iteration 5 — All channels
+
+- **Objective:** generalize iteration 4 to up to 4 channels (LDC1314's full channel count), multi-channel (auto-scan) mode.
+- **Tasks:** channel array/registration in the hub, bounded by a single `MAX_CHANNELS=4` constant (§2) rather than a scattered literal; `MUX_CONFIG.AUTOSCAN_EN`/`RR_SEQUENCE` configuration derived from which channels are declared in YAML; validate declared channel indices (0–3) against that constant. No LDC1312/LDC1612/LDC1614 branching — out of scope per §1 "Device scope".
+- **Expected files:** `ldc1314.h`/`.cpp`, `sensor.py`.
+- **Acceptance criteria:** 2+ channels reporting independently correct values on real hardware; multi-channel data-readback race (`docs/knowledge_base.md`) verified not to cause stale/duplicate readings at the chosen `update_interval`.
+- **Risks:** the readback race is the main correctness risk here — needs a deliberate test, not just "it compiles and channel 0 still works."
+
+### Iteration 6 — Diagnostics
+
+- **Objective:** expose STATUS-derived error/diagnostic information.
+- **Tasks:** optional per-channel error `binary_sensor`s or a shared status text_sensor; `dump_config()` showing resolved register values; STATUS read integrated into `update()` per the read-order note in `docs/knowledge_base.md`.
+- **Expected files:** possibly `binary_sensor.py` or `text_sensor.py` alongside `sensor.py`; `ldc1314.h`/`.cpp`.
+- **Acceptance criteria:** deliberately inducing an error condition (e.g. disconnecting a sensor to trigger amplitude-low/zero-count) shows up in the diagnostic output on real hardware.
+- **Risks:** low — mostly wiring existing STATUS-read logic to new entity types.
+
+### Iteration 7 — Configuration options
+
+- **Objective:** round out the YAML schema with the remaining documented options (Output Gain, offset, deglitch, reference clock source/external CLKIN, high-current-drive, sensor-activation mode) and decide on friendlier units where it clearly helps (e.g. settle time in µs vs. raw SETTLECOUNT).
+- **Tasks:** schema additions in `__init__.py`/`sensor.py`; validation reflecting the dependencies in `docs/knowledge_base.md` "Configuration dependencies" (e.g. FIN_DIVIDER≥2 required above 8.75 MHz, FREF_DIVIDER bounds versus the 35/40 MHz mode-dependent ceiling).
+- **Expected files:** `__init__.py`, `sensor.py`.
+- **Acceptance criteria:** schema validation rejects known-invalid combinations (e.g. RCOUNT out of 3–65535) with clear error messages; compiles across a range of test YAMLs exercising the new options.
+- **Risks:** scope creep — resist adding options nothing in `docs/` motivates; every new option should trace to a specific documented register/behavior.
+
+### Iteration 8 — Documentation
+
+- **Objective:** user-facing docs (README/component docs page) separate from this internal `.plan`/`docs/` set.
+- **Tasks:** write component usage docs referencing `register_map.md`/`docs/knowledge_base.md` for anyone wanting register-level detail, without duplicating it; example YAMLs for single-sensor, multi-channel, and diagnostics use cases.
+- **Expected files:** `components/ldc1314/README.md` or equivalent, depending on where the component ends up living (external repo vs. upstream docs site).
+- **Acceptance criteria:** a new user can wire up channel 0 following only the component docs, without needing to read the datasheet.
+- **Risks:** none significant.
+
+### Iteration 9 — Upstream readiness
+
+- **Objective:** evaluate and, if pursued, execute the move to `esphome/components/ldc1314/` in ESPHome core.
+- **Tasks:** see §6 checklist; CODEOWNERS, component test YAML fixtures under ESPHome's test structure, formatting via ESPHome's CI tooling, `CONF_*` constant centralization if any keys collide with existing components.
+- **Expected files:** varies — this iteration is a PR against `esphome/esphome`, not a change to this repo's own structure.
+- **Acceptance criteria:** ESPHome CI passes; a maintainer review is requested.
+- **Risks:** out of this project's control (maintainer bandwidth/interest) — treat as optional/best-effort, not a hard deliverable.
+
+## 5. Testing Strategy
+
+- **Per-iteration compile tests:** each iteration ships at least one YAML fixture that must pass `esphome compile` (or `esphome config` for schema-only iterations) — exact fixture location/naming decided in iteration 0 and reused consistently after.
+- **Manual hardware bring-up procedure** (documented once, reused every iteration from 1 onward): I2C bus scan confirms the device responds at the configured address → DEVICE_ID/MANUFACTURER_ID check (iteration 1) → apply the datasheet's recommended initial register sequence (`docs/LDC1314_datasheet.md` §8.2.5, single- or multi-channel table) → confirm DATA0 (or the relevant channel) changes when a metal target is moved near the sensor coil.
+- **Deliberate fault injection for iteration 6:** disconnect/short a sensor channel to trigger a real error condition (amplitude-low or zero-count are the easiest to induce) and confirm it surfaces in the diagnostics.
+- **Race-condition check for iteration 5:** run multi-channel mode at a deliberately tight `update_interval` relative to the configured conversion+settling time and confirm the driver either keeps up or visibly reports the condition (via UNREADCONVx) rather than silently publishing stale data.
+
+## 6. Upstream Readiness
+
+Grounded in `developers.esphome.io/contributing/code/` (fetched during planning). Before proposing this component for `esphome/esphome` core (iteration 9):
+
+- CODEOWNERS entry for the component.
+- Configuration keys as `CONF_*` constants; move to `esphome/components/const/__init__.py` only if actually shared with another component.
+- `dump_config()` implemented via `ESP_LOGCONFIG`, showing resolved hub and per-channel configuration.
+- No heap allocation after `setup()` — channel storage sized at codegen time.
+- Component test YAML fixture(s) matching ESPHome's test conventions.
+- Passes ESPHome's formatting/CI tooling (clang-format equivalent, `ci-custom.py`-style checks) — run locally via Docker before submission, per the contributing guide.
+- All entities optional in configuration (no sensor/diagnostic created unless the user asks for it).
+- Datasheet/app-note references in code comments where a non-obvious register behavior is being encoded (e.g. the Sleep-Mode-only write constraint, the RESET_DEV never-reads-back quirk).
+
+## 7. Migration Strategy
+
+For an existing ad-hoc ESPHome watermeter setup that currently talks to the LDC1314 directly (e.g. via the generic `i2c` platform + `template`/`lambda` sensors doing manual register reads and inline distance/flow math):
+
+1. Introduce the `ldc1314:` hub and one `sensor: platform: ldc1314` per channel currently being read manually, initially just to *replace* the raw I2C plumbing — publish the same raw values the existing lambdas currently compute internally, without changing any downstream math yet.
+2. Point the existing distance/flow `template` sensors/`lambda`s at the new raw `ldc1314` sensor entities (via `id(...).state` or `sensor.filter`/`sensor.template` inputs) instead of their own inline I2C reads — the application-specific math (whatever quadrature/Clarke-style decoding or distance calibration it does) stays exactly where it is, per `design_decisions.md`.
+3. Remove the old manual I2C/register-poking code once the raw values are confirmed to match (same update cadence, same register configuration) — this is the point where the driver has fully replaced the ad-hoc hardware-access layer, with zero behavior change to the watermeter logic itself.
+4. Only after that migration is stable, consider whether any of the driver's new diagnostic/error-reporting capabilities (iteration 6) are worth wiring into the existing watermeter's fault handling — this is an enhancement, not a required part of the migration.

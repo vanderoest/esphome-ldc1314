@@ -1,0 +1,59 @@
+esphome:
+  name: ldc1314-test
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+ldc1314:
+  - id: ldc
+    address: 0x2A
+    update_interval: 60s
+    reference_clock: internal
+    deglitch: 3_3MHZ
+    output_gain: 1
+    high_current_drive: false
+    sensor_activation_mode: FULL_CURRENT
+    report_errors_on_intb: false
+
+sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Raw"
+    rcount: 0x04D6
+    settlecount: 0x000A
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 18
+
+binary_sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Error"
