@@ -1,22 +1,48 @@
 # Exercises the characterization framework (characterization:, number:, switch:, button:) against
-# the LOCAL component tree. The other committed fixtures pull from `github://vanderoest/...`, which
-# does not yet carry this code -- this one is the only committed fixture that actually builds the
-# characterization engine, the three-layer settings store, and the new platforms. See .plan
-# "Verification" and TODO.md Phase 5.
+# the published github source -- the characterization code has landed on main, so this pulls the
+# real thing rather than a local checkout. Mirrors watermeter-test.yaml's connectivity/logging
+# setup (wifi/api/ota/web_server, DEBUG logging, esp32 variant) since a live characterization run
+# needs to be watched and triggered remotely. Needs a secrets.yaml (gitignored, see
+# tests/.gitignore) with wifi_ssid, wifi_password, ota_password, api_encryption_key, web_username,
+# web_password -- same keys watermeter-test.yaml uses. See .plan "Verification" and TODO.md Phase 5.
 esphome:
   name: ldc1314-characterization-test
 
 esp32:
-  board: esp32dev
+  variant: esp32
   framework:
     type: esp-idf
 
 logger:
+  level: DEBUG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "LDC_Characterization_Fallback"
+    password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+web_server:
+  port: 80
+  auth:
+    type: digest
+    username: !secret web_username
+    password: !secret web_password
+  version: 3
 
 external_components:
-  - source:
-      type: local
-      path: ../components
+  - source: github://vanderoest/esphome-ldc1314
+    components: [ldc1314]
+    refresh: 0s
 
 i2c:
   sda: GPIO26
