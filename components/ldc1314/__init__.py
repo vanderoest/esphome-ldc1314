@@ -4,8 +4,8 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
 # Placeholder maintainer handle -- update if/when this component is proposed for esphome/esphome
-# core (iteration 9, upstream readiness -- see .plan §6).
-CODEOWNERS = ["@arjan"]
+# core.
+CODEOWNERS = ["@vanderoest"]
 DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
 

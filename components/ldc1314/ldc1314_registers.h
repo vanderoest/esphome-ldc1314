@@ -4,10 +4,11 @@
 // register_map.md (itself derived from the TI datasheet SNOSCZ0A, docs/LDC1314_datasheet.md
 // §7.6). Do not add fields here that aren't documented there.
 //
-// v1 scope is the LDC1314 only (see .plan "Device scope" / design_decisions.md) -- this header
-// intentionally only covers the LDC1312/1314 register layout. The LDC1612/1614 use a different,
-// undocumented-in-this-repo register layout (28-bit data, different literature/SNOSCY9) and would
-// need a separate header, not an extension of this one.
+// v1 scope is the LDC1314 only (see design_decisions.md "Scope v1 to the LDC1314 only, without
+// closing the door on LDC1312/1612/1614") -- this header intentionally only covers the
+// LDC1312/1314 register layout. The LDC1612/1614 use a different, undocumented-in-this-repo
+// register layout (28-bit data, different literature/SNOSCY9) and would need a separate header,
+// not an extension of this one.
 
 #include <cstdint>
 
@@ -16,7 +17,7 @@ namespace ldc1314 {
 
 // Channel count supported by the LDC1314. Kept as a single named constant (rather than a
 // scattered literal) so a future LDC1312 (2-channel) variant only needs this value changed --
-// see .plan "Device scope".
+// see design_decisions.md.
 static const uint8_t MAX_CHANNELS = 4;
 
 // --- Register addresses -----------------------------------------------------------------

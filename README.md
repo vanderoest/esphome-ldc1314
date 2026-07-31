@@ -3,11 +3,11 @@
 A generic ESPHome driver for the Texas Instruments LDC1314 4-channel inductance-to-digital
 converter (I2C). It publishes **raw** per-channel conversion values and per-channel error
 diagnostics — it does not compute distance, flow, or any other application-specific quantity. See
-`design_decisions.md` and `.plan` for why that boundary exists.
+`design_decisions.md` for why that boundary exists.
 
-**v1 scope:** the LDC1314 only. See `.plan` §1 "Device scope" — the LDC1312 shares this exact
-register map (fewer channels) and would be cheap to add later; the LDC1612/LDC1614 use a
-different, undocumented-here register layout and are out of scope entirely for now.
+**v1 scope:** the LDC1314 only. The LDC1312 shares this exact register map (fewer channels) and
+would be cheap to add later; the LDC1612/LDC1614 use a different, undocumented-here register
+layout and are out of scope entirely for now — see `design_decisions.md` for the reasoning.
 
 Register-level background: `register_map.md` and `docs/knowledge_base.md`. This README only
 covers using the component — it does not repeat register documentation.
@@ -117,7 +117,8 @@ communication failures and setup problems).
 
 The register-valued options below map directly to the datasheet registers of the same purpose
 (`register_map.md` has the full field-level reference); there are no "friendly units" in v1 —
-see `.plan` §7 for why, and iteration 7 for where that might be revisited.
+raw register values are simpler to keep correct and match the datasheet 1:1. Friendlier units
+(e.g. settle time in µs) may come in a later revision.
 
 | Option | Register | Range | Default |
 |---|---|---|---|
@@ -161,5 +162,4 @@ Getting these right for a real sensor requires working through the datasheet's w
 - Run automatic sensor-drive auto-calibration during normal operation.
 
 See `design_decisions.md` for the reasoning, and wire that logic in your own
-`template`/`sensor.filter`/lambda code consuming this component's raw sensor entities instead —
-see `.plan` §7 "Migration strategy" for a worked example of that split.
+`template`/`sensor.filter`/lambda code consuming this component's raw sensor entities instead.

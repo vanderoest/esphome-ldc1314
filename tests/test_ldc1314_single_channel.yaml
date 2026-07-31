@@ -9,9 +9,8 @@ esp32:
 logger:
 
 external_components:
-  - source:
-      type: local
-      path: ../components
+  - source: github://vanderoest/esphome-ldc1314
+    components: [ldc1314]
 
 i2c:
   sda: GPIO21

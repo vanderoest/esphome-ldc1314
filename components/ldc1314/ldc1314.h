@@ -38,7 +38,7 @@ enum SensorActivationMode {
 ///
 /// This component only talks to the device and publishes raw per-channel conversion codes; it
 /// deliberately does not compute distance, flow, or any other physical/application-specific
-/// quantity -- see design_decisions.md ("Publish raw values, not liters/flow") and .plan §1.
+/// quantity -- see design_decisions.md ("Publish raw values, not liters/flow").
 class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;

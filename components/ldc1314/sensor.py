@@ -16,7 +16,7 @@ CONF_FREF_DIVIDER = "fref_divider"
 CONF_IDRIVE = "idrive"
 
 # Matches the LDC1314's fixed 4-channel hardware limit (MAX_CHANNELS in ldc1314_registers.h).
-# v1 targets the LDC1314 only -- see .plan "Device scope" / design_decisions.md.
+# v1 targets the LDC1314 only -- see design_decisions.md.
 MAX_CHANNEL_INDEX = 3
 
 CONFIG_SCHEMA = sensor.sensor_schema(
