@@ -38,6 +38,41 @@ enum SensorActivationMode {
   LDC1314_SENSOR_ACTIVATE_LOW_POWER = 1,
 };
 
+// Pre-flight datasheet-conformance check, run once at the end of characterization Stage 0.
+//
+// The driver reports facts here, never conclusions: measured values, the datasheet rule, whether
+// the rule is met, and a suggested next experiment. It never claims a root cause, and it never
+// invents an input it does not have -- a check whose input is unavailable reports NOT EVALUATED
+// rather than guessing (coil Q is not measurable from registers; fCLKIN is unknown on an external
+// reference clock).
+struct PreflightChannel {
+  bool active{false};
+  uint16_t code{0};                 // DATAx & DATA_RESULT_MASK
+  bool amplitude_error{false};      // DATAx & DATA_ERR_AE
+  double ratio{0};                  // code / 4096 -- exact, independent of oscillator accuracy
+  double fref_hz{0};                // fCLK / FREF_DIVIDER (0 when fCLK is unknown)
+  double fsensor_hz{0};             // ratio * fREF * FIN_DIVIDER (0 when fCLK is unknown)
+  double q_max{0};                  // highest coil Q this channel's SETTLECOUNT supports
+};
+
+struct PreflightResult {
+  bool valid{false};
+  // False on an external reference clock: the driver has no way to know fCLKIN, so every
+  // absolute-frequency figure (and with it the DEGLITCH check) is left unevaluated. The ratio and
+  // Q checks stay exact regardless -- both cancel fCLK out.
+  bool fclk_known{false};
+  double fclk_hz{0};
+  double deglitch_hz{0};
+  uint16_t max_code{0};
+  double max_fsensor_hz{0};
+  double min_q_max{0};
+  uint8_t q_binding_channel{0};
+  bool deglitch_ok{false};     // §8.1.7: DEGLITCH exceeds the highest active sensor frequency
+  bool data_limit_ok{false};   // §8.1.6: fIN < fREF/4, i.e. DATA < 1024
+  bool amplitude_clean{false}; // no DATAx.ERR_AE asserted on any active channel
+  PreflightChannel ch[MAX_CHANNELS];
+};
+
 // Characterization state machine stages -- see .plan "The staged procedure". IDLE is both the
 // resting state and the successful-completion state; every other stage is transient.
 enum CharacterizationStage : uint8_t {
@@ -216,6 +251,18 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   void char_progress_();
   void char_report_(bool success, const std::string &failure_reason);
 
+  // --- pre-flight datasheet conformance, implemented in ldc1314_preflight.cpp ---
+  //
+  // Kept in its own translation unit rather than folded into the characterization engine: it has
+  // no state machine, it is pure measure-and-render, and a future standalone "run diagnostics"
+  // trigger would need only a call site.
+  bool run_preflight_(PreflightResult *out);
+  void log_preflight_(const PreflightResult &result);
+  // The single line printed under "Suggested next experiment", derived mechanically from the
+  // failed checks in a fixed order. Shared with the abort message so both stay consistent.
+  std::string preflight_suggestion_(const PreflightResult &result) const;
+  static double deglitch_frequency_hz_(Deglitch deglitch);
+
   Channel channels_[MAX_CHANNELS];
 
   ReferenceClockSource reference_clock_source_{LDC1314_REFERENCE_CLOCK_INTERNAL};
@@ -268,9 +315,26 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   uint32_t char_i2c_failures_{0};
   uint8_t char_verify_retries_{0};
 
+  // Stuck-drive early abort: millis() at which the auto-amplitude loop was first observed pinned
+  // at an endpoint with the matching amplitude error, or 0 while it is not pinned. Cleared on any
+  // sample that breaks the condition, so only a *continuous* stall reaches the abort threshold.
+  uint32_t char_pinned_since_ms_{0};
+  bool char_pinned_high_{false};  // false = pinned low (31/ERR_ALE), true = pinned high (0/ERR_AHE)
+  // Set by the amplitude aborts only, so char_report_() adds the constraints that bear on
+  // amplitude without attaching them to unrelated failures like "target did not move".
+  bool char_fail_amplitude_{false};
+
+  // Captured at the end of Stage 0 and reprinted by char_report_(), so an aborted run's report is
+  // self-contained rather than referring back to a block further up the log.
+  PreflightResult preflight_{};
+
   struct ChannelAccum {
     uint8_t idrive_min{31};
     uint8_t idrive_max{0};
+    // The most recent sample, as opposed to the min/max envelope: the stuck-drive early abort has
+    // to judge the auto-amplitude loop's *current* state, since an envelope that once touched 31
+    // says nothing about whether it is still pinned there.
+    uint8_t idrive_last{0};
     uint16_t code_min{0x0FFF};
     uint16_t code_max{0};
     uint16_t idle_code{0};

@@ -27,6 +27,16 @@ static const uint16_t IDLE_MOTION_THRESHOLD = 8;
 
 static const uint8_t MAX_VERIFY_RETRIES = 2;
 
+// How long the auto-amplitude loop must sit pinned at an endpoint, with the matching amplitude
+// error asserted, before Stage 1 gives up instead of running out its full stage_duration.
+//
+// Not a YAML option on purpose. The condition has to hold *continuously* -- any sample that breaks
+// it resets the timer -- so the loop is always granted the full window to move from wherever it
+// is, and there is nothing a user could usefully tune. TI's auto-calibration traverses its 32
+// codes in far less than this, so a stall this long is a genuine dead end rather than slow
+// settling.
+static const uint32_t PINNED_DRIVE_ABORT_MS = 8000;
+
 bool LDC1314Component::char_write_registers_(OutputGain gain, const uint8_t *idrive, const uint16_t *offset,
                                               bool rp_override, bool auto_amp_dis) {
   if (!this->enter_sleep_())
@@ -89,6 +99,10 @@ void LDC1314Component::char_enter_stage_(CharacterizationStage stage) {
       this->char_verify_retries_ = 0;
       this->char_verify_ur_ = 0;
       this->char_verify_or_ = 0;
+      this->char_pinned_since_ms_ = 0;
+      this->char_pinned_high_ = false;
+      this->char_fail_amplitude_ = false;
+      this->preflight_ = PreflightResult{};
 
       // Unclipped, unshifted baseline: gain 1, offset 0, fixed drive at whatever was already
       // effective (the value doesn't matter yet -- only gain/offset matter for the idle read).
@@ -265,6 +279,18 @@ void LDC1314Component::char_tick_() {
           return;
         }
         ESP_LOGI(TAG, "Stage 0/5  done.  idle baseline captured.");
+
+        // Pre-flight belongs here and nowhere else: it needs a controlled, target-still baseline
+        // to mean anything. Run at boot instead, it would describe whatever arbitrary position
+        // the target happened to be resting in. It never aborts -- a configuration already
+        // outside the datasheet recommendations is still worth characterizing, so the run can be
+        // compared against a corrected one.
+        if (this->run_preflight_(&this->preflight_)) {
+          this->log_preflight_(this->preflight_);
+        } else {
+          ESP_LOGW(TAG, "Pre-flight skipped: no channel could be read");
+        }
+
         this->char_enter_stage_(CHAR_STAGE_AUTO_IDRIVE);
       }
       break;
@@ -273,6 +299,8 @@ void LDC1314Component::char_tick_() {
     case CHAR_STAGE_AUTO_IDRIVE: {
       if (do_sample) {
         this->char_last_sample_ms_ = now;
+        uint16_t sample_status = 0;
+        uint8_t sampled_channels = 0;
         for (uint8_t ch = 0; ch < MAX_CHANNELS; ch++) {
           if (!this->channels_[ch].active())
             continue;
@@ -287,9 +315,57 @@ void LDC1314Component::char_tick_() {
             acc.idrive_min = init_idrive;
           if (this->char_drive_samples_ == 0 || init_idrive > acc.idrive_max)
             acc.idrive_max = init_idrive;
+          acc.idrive_last = init_idrive;
           this->char_status_or_ |= status;
+          sample_status |= status;
+          sampled_channels++;
         }
         this->char_drive_samples_++;
+
+        // Stuck-drive early abort. Judged on this sample's own values -- idrive_last and
+        // sample_status, never the min/max envelope or char_status_or_ -- because those latch: an
+        // envelope that once touched 31 says nothing about where the loop is now.
+        //
+        // Requires a complete batch: a channel whose read failed still holds its previous
+        // idrive_last, and deciding "every channel is pinned" partly on stale values could abort a
+        // healthy run. An incomplete batch resets the timer rather than being skipped, so the
+        // abort only ever fires on an unbroken run of fully-observed samples.
+        if (sampled_channels < this->active_channel_count_()) {
+          this->char_pinned_since_ms_ = 0;
+        } else {
+          bool all_at_max = true;
+          bool all_at_min = true;
+          for (uint8_t ch = 0; ch < MAX_CHANNELS; ch++) {
+            if (!this->channels_[ch].active())
+              continue;
+            if (this->char_accum_[ch].idrive_last != 31)
+              all_at_max = false;
+            if (this->char_accum_[ch].idrive_last != 0)
+              all_at_min = false;
+          }
+          bool stuck_low = all_at_max && (sample_status & STATUS_ERR_ALE) != 0;
+          bool stuck_high = all_at_min && (sample_status & STATUS_ERR_AHE) != 0;
+
+          if (!stuck_low && !stuck_high) {
+            this->char_pinned_since_ms_ = 0;
+          } else if (this->char_pinned_since_ms_ == 0 || this->char_pinned_high_ != stuck_high) {
+            // First observation, or the loop flipped to the other endpoint -- either way the
+            // clock starts now.
+            this->char_pinned_since_ms_ = now;
+            this->char_pinned_high_ = stuck_high;
+          } else if (now - this->char_pinned_since_ms_ >= PINNED_DRIVE_ABORT_MS) {
+            char reason[160];
+            snprintf(reason, sizeof(reason),
+                     "%s persists at %s drive: INIT_IDRIVE %u on every active channel with %s "
+                     "asserted continuously for %us",
+                     stuck_high ? "amplitude-high" : "amplitude-low", stuck_high ? "minimum" : "maximum",
+                     stuck_high ? 0 : 31, stuck_high ? "ERR_AHE" : "ERR_ALE",
+                     static_cast<unsigned>((now - this->char_pinned_since_ms_) / 1000));
+            this->char_fail_amplitude_ = true;
+            this->char_abort_(reason);
+            return;
+          }
+        }
       }
       if (do_progress) {
         this->char_last_progress_ms_ = now;
@@ -316,17 +392,24 @@ void LDC1314Component::char_tick_() {
             any_at_min = true;
         }
 
-        // Failure detection -- see .plan Stage 1 "Failure detection".
+        // Failure detection -- see .plan Stage 1 "Failure detection". The continuous case is
+        // caught far earlier by the stuck-drive abort above; these catch the intermittent one,
+        // where the loop reached an endpoint with the matching error at some point during the
+        // stage but never sat there long enough to trip it.
         if (any_at_max && (this->char_status_or_ & STATUS_ERR_ALE)) {
+          this->char_fail_amplitude_ = true;
           this->char_abort_(
-              "amplitude-low persists at maximum drive -- check SETTLECOUNT (must be >= "
-              "Q*fREF/(16*fSENSOR)), or the sensor may be disconnected / outside the drivable RP range");
+              "amplitude-low observed at maximum drive: INIT_IDRIVE reached 31 with ERR_ALE "
+              "asserted during the stage, so the derived drive current would sit at the top of "
+              "the range with no headroom");
           return;
         }
         if (any_at_min && (this->char_status_or_ & STATUS_ERR_AHE)) {
+          this->char_fail_amplitude_ = true;
           this->char_abort_(
-              "amplitude-high persists at minimum drive -- sensor RP is likely above 90 kOhm; try a "
-              "100 kOhm resistor in parallel with the sensor inductor (datasheet 8.1.5)");
+              "amplitude-high observed at minimum drive: INIT_IDRIVE reached 0 with ERR_AHE "
+              "asserted during the stage, so the derived drive current would sit at the bottom of "
+              "the range with no headroom");
           return;
         }
 
@@ -667,6 +750,40 @@ void LDC1314Component::char_report_(bool success, const std::string &failure_rea
   if (!success) {
     ESP_LOGI(TAG, " Failure reason");
     ESP_LOGI(TAG, "   %s", failure_reason.c_str());
+
+    // Everything below is stated as measurement and datasheet rule, never as a diagnosis: the
+    // driver lists which constraints are not met and which others bear on the symptom, and lets
+    // the user pick the next experiment. See .plan "The driver reports facts, not conclusions".
+    if (this->preflight_.valid) {
+      bool any_failed = (this->preflight_.fclk_known && !this->preflight_.deglitch_ok) ||
+                        !this->preflight_.data_limit_ok;
+      if (any_failed) {
+        ESP_LOGI(TAG, " Datasheet checks not met");
+        if (this->preflight_.fclk_known && !this->preflight_.deglitch_ok) {
+          ESP_LOGI(TAG, "   8.1.7   DEGLITCH %.1f MHz vs %.2f MHz max sensor frequency",
+                   this->preflight_.deglitch_hz / 1e6, this->preflight_.max_fsensor_hz / 1e6);
+        }
+        if (!this->preflight_.data_limit_ok) {
+          ESP_LOGI(TAG, "   8.1.6   max DATA %u is at or above the 1024 clock limit",
+                   static_cast<unsigned>(this->preflight_.max_code));
+        }
+      }
+
+      if (this->char_fail_amplitude_) {
+        ESP_LOGI(TAG, " Other constraints bearing on amplitude");
+        ESP_LOGI(TAG, "           the device swept its full auto-calibration range without");
+        ESP_LOGI(TAG, "           reaching the 1.2-1.8 V target, so no IDRIVE value resolves it");
+        ESP_LOGI(TAG, "   8.1.6   SETTLECOUNT supports coil Q up to %.1f (CH%u binding);",
+                 this->preflight_.min_q_max, this->preflight_.q_binding_channel);
+        ESP_LOGI(TAG, "           the coil's actual Q is not measurable here");
+        ESP_LOGI(TAG, "   8.1.5   RP below ~0.6 kOhm cannot reach 1.2 V even at IDRIVE 31");
+      }
+
+      ESP_LOGI(TAG, " Suggested next experiment");
+      ESP_LOGI(TAG, "   %s", this->preflight_suggestion_(this->preflight_).c_str());
+      ESP_LOGI(TAG, "   Change one variable per run.");
+    }
+
     ESP_LOGI(TAG, "================================================================");
     return;
   }

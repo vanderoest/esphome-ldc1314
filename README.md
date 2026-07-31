@@ -224,6 +224,64 @@ live at every step, and a full report is printed on completion (or on abort) —
 exact stages and the reasoning behind each derivation, most importantly why the chosen IDRIVE is
 the *minimum* observed rather than an average.
 
+### Pre-flight: is the configuration even within the datasheet?
+
+Once the idle baseline is captured, and before any drive current is touched, the run prints a
+**pre-flight conformance report**. It measures what the coils are actually doing under the
+configuration currently in force, states the datasheet rule bearing on each measurement, and says
+whether that rule is met:
+
+```
+ Observed
+   fCLK  43.40 MHz  (internal oscillator, nominal)
+              fREF    DATA    ratio     fSENSOR    Q max
+   CH0   21.70 MHz     937   0.2288   4.964 MHz     36.6
+   CH1   21.70 MHz     928   0.2266   4.916 MHz     36.2
+   CH2   21.70 MHz     977   0.2385   5.176 MHz     38.2
+   DEGLITCH configured   3.3 MHz
+   amplitude error   currently asserted on CH0 CH1 CH2
+
+ Datasheet
+   8.1.7   DEGLITCH must be the lowest setting exceeding the highest
+           active sensor frequency.
+           3.3 MHz vs 5.18 MHz max sensor freq          NOT MET
+   8.1.6   Multi-channel requires fIN < fREF/4, i.e. DATA < 1024.
+           max DATA 977, 47 codes of margin (95.4%)     MET
+   8.1.6   SETTLECOUNT >= Q*fREF/(16*fSENSOR).
+           supports coil Q up to 36.2 (CH1 binding)
+           the coil's actual Q is not measurable here   NOT EVALUATED
+
+ Suggested next experiment
+   Set  deglitch: 10MHZ   -- lowest setting exceeding 5.18 MHz.
+```
+
+The report states measurements and rules, never a diagnosis: it will tell you a constraint is not
+met and suggest an experiment, but it will not claim to know why your sensor misbehaves. Where an
+input genuinely isn't available it prints `NOT EVALUATED` rather than guessing — coil Q cannot be
+read from registers, and `fCLKIN` is unknown when `reference_clock: external`, so the
+frequency-dependent checks are skipped in that case. The `DATA < 1024` and `Q max` checks cancel
+`fCLK` out entirely and stay exact regardless.
+
+Pre-flight never aborts the run. A configuration outside the datasheet recommendations is still
+worth characterizing, if only to compare against a corrected one.
+
+It runs only inside a characterization run, never at boot: the numbers only mean what the report
+says they mean once Stage 0 has established a controlled, target-still baseline. At boot the
+target sits wherever it happens to be.
+
+### When a run stops early
+
+If the device's own auto-calibration sits pinned at an endpoint of its drive range — `INIT_IDRIVE`
+31 with an amplitude-low error, or 0 with amplitude-high — on **every** active channel
+*continuously* for 8 seconds, the run aborts immediately instead of finishing the stage. The
+device has already swept its whole range, so no `idrive` value can help and there is nothing to be
+learned from waiting.
+
+The abort report names which datasheet checks are not met, lists the other constraints that bear
+on amplitude, and suggests the next single variable to change. The 8-second window is an internal
+constant, not an option: the condition must hold *without interruption*, so the auto-amplitude
+loop always gets the full window to move from wherever it is, and there is nothing to tune.
+
 ### Guided prompts are configuration, not code
 
 The two messages above are literal, target-neutral defaults and can be overridden per
