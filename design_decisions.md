@@ -30,7 +30,7 @@ Running log of significant architectural *why* decisions made while producing `.
 
 ## Publish raw values, not liters/flow
 
-**Decision:** The driver publishes the raw 12-bit `DATAx` conversion code and/or the computed frequency ratio (`fSENSORx/fREFx`, per the datasheet formula in `docs/knowledge_base.md`) as plain ESPHome sensors. It never computes distance, liters, or flow rate.
+**Decision:** The driver publishes the raw 12-bit `DATAx` conversion code as a plain ESPHome sensor. It never computes distance, liters, or flow rate. A frequency-ratio output (`fSENSORx/fREFx`, per the datasheet formula in `docs/knowledge_base.md`) is a possible future addition, not a v1 feature — the ratio is currently computed only inside the diagnostics report, and is not exposed as an entity.
 
 **Alternatives considered:**
 - Add an optional "distance" or "flow" output mode with a user-supplied calibration curve.

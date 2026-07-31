@@ -252,16 +252,15 @@ bool LDC1314Component::apply_config_() {
     return false;
   }
 
-  // ERROR_CONFIG: both *_ERR2OUT (per-channel DATAx error bits) and *_ERR2INT (which despite the
-  // name also gates whether STATUS.ERR_* updates at all, see register_map.md) are always enabled;
-  // the physical INTB pin stays separately gated by CONFIG.INTB_DIS below.
+  // ERROR_CONFIG (0xF8FC): both *_ERR2OUT (per-channel DATAx error bits) and *_ERR2INT (which
+  // despite the name also gates whether STATUS.ERR_* updates at all, see register_map.md) are
+  // always enabled; the physical INTB pin stays separately gated by CONFIG.INTB_DIS below.
+  // DRDY_2INT stays off: `report_errors_on_intb` promises error assertion only, and routing
+  // data-ready to the same pin would assert it on every conversion, drowning the errors out.
   uint16_t error_config = ERROR_CONFIG_UR_ERR2OUT | ERROR_CONFIG_OR_ERR2OUT | ERROR_CONFIG_WD_ERR2OUT |
                            ERROR_CONFIG_AH_ERR2OUT | ERROR_CONFIG_AL_ERR2OUT | ERROR_CONFIG_UR_ERR2INT |
                            ERROR_CONFIG_OR_ERR2INT | ERROR_CONFIG_WD_ERR2INT | ERROR_CONFIG_AH_ERR2INT |
                            ERROR_CONFIG_AL_ERR2INT | ERROR_CONFIG_ZC_ERR2INT;
-  if (this->report_errors_on_intb_) {
-    error_config |= ERROR_CONFIG_DRDY_2INT;
-  }
   if (!this->write_byte_16(REG_ERROR_CONFIG, error_config)) {
     ESP_LOGE(TAG, "Failed to write ERROR_CONFIG");
     return false;
