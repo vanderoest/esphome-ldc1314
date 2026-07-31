@@ -1,0 +1,468 @@
+INFO ESPHome 2026.7.3
+INFO Loaded validated config cache for watermeter.yaml, skipping validation.
+INFO Starting log output from 192.168.x.x using esphome API
+INFO Successfully resolved ldc1314-test @ 192.168.x.x in 0.000s
+INFO Successfully connected to ldc1314-test @ 192.168.x.x in 5.142s
+INFO Successful handshake with ldc1314-test @ 192.168.x.x in 0.077s
+[14:35:54.914][I][app:151]: ESPHome version 2026.7.3 compiled on 2026-07-31 14:34:53 +0200
+[14:35:54.914][I][app:158]: ESP32 Chip: ESP32 rev1.0, 2 core(s)
+[14:35:54.914][W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true under esp32 > framework > advanced
+[14:35:54.914][C][logger:223]: Logger:
+[14:35:54.914][C][logger:223]:   Max Level: DEBUG
+[14:35:54.914][C][logger:223]:   Initial Level: DEBUG
+[14:35:54.917][C][logger:230]:   Log Baud Rate: 115200
+[14:35:54.917][C][logger:230]:   Hardware UART: UART0
+[14:35:54.920][C][logger:239]:   Task Log Buffer Size: 768 bytes
+[14:35:54.942][C][i2c.idf:092]: I2C Bus:
+[14:35:54.945][C][i2c.idf:093]:   SDA Pin: GPIO26
+[14:35:54.945][C][i2c.idf:093]:   SCL Pin: GPIO25
+[14:35:54.945][C][i2c.idf:093]:   Frequency: 50000 Hz
+[14:35:54.945][C][i2c.idf:103]:   Recovery: bus successfully recovered
+[14:35:54.945][C][i2c.idf:113]: Results from bus scan:
+[14:35:54.947][C][i2c.idf:119]: Found device at address 0x2A
+[14:35:54.972][C][ldc1314:065]: LDC1314:
+[14:35:54.983][C][ldc1314:066]:   Address: 0x2A
+[14:35:54.983][C][ldc1314:394]:   Update Interval: 1.0s
+[14:35:54.983][C][ldc1314:071]:   Reference clock: internal
+[14:35:54.983][C][ldc1314:073]:   Deglitch filter: 3.3 MHz
+[14:35:54.983][C][ldc1314:074]:   Output gain: 1x
+[14:35:54.983][C][ldc1314:075]:   Report errors on INTB: NO
+[14:35:54.983][C][ldc1314:081]:   Channel 0:
+[14:35:54.999][C][ldc1314:017]:     Raw value 'LDC Channel 0 Raw'
+[14:35:54.999][C][ldc1314:017]:       State Class: 'measurement'
+[14:35:54.999][C][ldc1314:017]:       Unit of Measurement: ''
+[14:35:54.999][C][ldc1314:017]:       Accuracy Decimals: 0
+[14:35:54.999][C][ldc1314:016]:     Error 'LDC Channel 0 Error'
+[14:35:54.999][C][ldc1314:225]:       Device Class: 'problem'
+[14:35:54.999][C][ldc1314:084]:     RCOUNT: 0x04D6, SETTLECOUNT: 0x000A, OFFSET: 0x0000
+[14:35:55.009][C][ldc1314:086]:     FIN_DIVIDER: 1, FREF_DIVIDER: 2, IDRIVE: 18
+[14:35:55.031][C][ldc1314:081]:   Channel 1:
+[14:35:55.031][C][ldc1314:017]:     Raw value 'LDC Channel 1 Raw'
+[14:35:55.031][C][ldc1314:017]:       State Class: 'measurement'
+[14:35:55.031][C][ldc1314:017]:       Unit of Measurement: ''
+[14:35:55.031][C][ldc1314:017]:       Accuracy Decimals: 0
+[14:35:55.031][C][ldc1314:016]:     Error 'LDC Channel 1 Error'
+[14:35:55.043][C][ldc1314:225]:       Device Class: 'problem'
+[14:35:55.064][C][ldc1314:084]:     RCOUNT: 0x04D6, SETTLECOUNT: 0x000A, OFFSET: 0x0000
+[14:35:55.064][C][ldc1314:086]:     FIN_DIVIDER: 1, FREF_DIVIDER: 2, IDRIVE: 18
+[14:35:55.064][C][ldc1314:081]:   Channel 2:
+[14:35:55.067][C][ldc1314:017]:     Raw value 'LDC Channel 2 Raw'
+[14:35:55.067][C][ldc1314:017]:       State Class: 'measurement'
+[14:35:55.067][C][ldc1314:017]:       Unit of Measurement: ''
+[14:35:55.067][C][ldc1314:017]:       Accuracy Decimals: 0
+[14:35:55.098][C][ldc1314:084]:     RCOUNT: 0x04D6, SETTLECOUNT: 0x000A, OFFSET: 0x0000
+[14:35:55.098][C][ldc1314:086]:     FIN_DIVIDER: 1, FREF_DIVIDER: 2, IDRIVE: 18
+[14:35:55.098][C][ldc1314:081]:   Channel 3:
+[14:35:55.101][C][ldc1314:017]:     Raw value 'LDC Channel 3 Raw'
+[14:35:55.101][C][ldc1314:017]:       State Class: 'measurement'
+[14:35:55.101][C][ldc1314:017]:       Unit of Measurement: ''
+[14:35:55.101][C][ldc1314:017]:       Accuracy Decimals: 0
+[14:35:55.144][C][ldc1314:084]:     RCOUNT: 0x04D6, SETTLECOUNT: 0x000A, OFFSET: 0x0000
+[14:35:55.144][C][ldc1314:086]:     FIN_DIVIDER: 1, FREF_DIVIDER: 2, IDRIVE: 18
+[14:35:55.154][C][wifi:1556]: WiFi:
+[14:35:55.154][C][wifi:1556]:   Local MAC: xx:xx:xx:xx:xx:xx
+[14:35:55.154][C][wifi:1556]:   Connected: YES
+[14:35:55.158][C][wifi:1259]:   IP Address: 192.168.x.x
+[14:35:55.162][C][wifi:1270]:   SSID: '<SSID>'
+[14:35:55.162][C][wifi:1270]:   BSSID: yy:yy:yy:yy:yy:yy
+[14:35:55.162][C][wifi:1270]:   Hostname: 'ldc1314-test'
+[14:35:55.162][C][wifi:1270]:   Signal strength: -17 dB ▂▄▆█
+[14:35:55.162][C][wifi:1270]:   Channel: 11
+[14:35:55.162][C][wifi:1270]:   Subnet: 255.255.255.0
+[14:35:55.162][C][wifi:1270]:   Gateway: 192.168.x.x
+[14:35:55.162][C][wifi:1270]:   DNS1: 192.168.x.x
+[14:35:55.162][C][wifi:1270]:   DNS2: 0.0.0.0
+[14:35:55.187][C][web_server:424]: Web Server:
+[14:35:55.187][C][web_server:424]:   Address: ldc1314-test.local:80
+[14:35:55.201][C][esphome.ota:098]: Over-The-Air updates:
+[14:35:55.201][C][esphome.ota:098]:   Address: ldc1314-test.local:3232
+[14:35:55.201][C][esphome.ota:098]:   Version: 2
+[14:35:55.204][C][esphome.ota:105]:   Password configured
+[14:35:55.223][C][safe_mode:058]: Safe Mode:
+[14:35:55.223][C][safe_mode:058]:   Successful after: 60s
+[14:35:55.223][C][safe_mode:058]:   Invoke after: 10 attempts
+[14:35:55.223][C][safe_mode:058]:   Duration: 300s
+[14:35:55.226][C][safe_mode:079]:   Bootloader rollback: supported
+[14:35:55.251][C][api:269]: Server:
+[14:35:55.251][C][api:269]:   Address: ldc1314-test.local:6053
+[14:35:55.251][C][api:269]:   Listen backlog: 4
+[14:35:55.251][C][api:269]:   Max connections: 5
+[14:35:55.254][C][api:276]:   Noise encryption: YES
+[14:35:55.270][C][mdns:259]: mDNS:
+[14:35:55.270][C][mdns:259]:   Hostname: ldc1314-test
+[14:35:55.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:35:55.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:35:55.644][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:35:55.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:35:55.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:35:55.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:35:55.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:35:55.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:35:56.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:35:56.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:35:56.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:35:56.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:35:56.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:35:56.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:35:56.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:35:56.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:35:57.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:35:57.643][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:35:57.643][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:35:57.643][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:35:57.746][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:35:57.746][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:35:57.746][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:35:57.746][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:35:58.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:35:58.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:35:58.640][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:35:58.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:35:58.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:35:58.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:35:58.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:35:58.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:35:59.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:35:59.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:35:59.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:35:59.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:35:59.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:35:59.730][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:35:59.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:35:59.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:00.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:00.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:00.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:00.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:00.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:00.731][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:00.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:00.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:01.634][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:01.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:01.642][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:01.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:01.737][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:01.737][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:01.737][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:01.738][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:02.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:02.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:02.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:02.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:02.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:02.731][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:02.732][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:02.732][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:03.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:03.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:03.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:03.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:03.734][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:03.734][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:03.734][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:03.734][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:04.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:04.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:04.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:04.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:04.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:04.730][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:04.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:04.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:05.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:05.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:05.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:05.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:05.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:05.731][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:05.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:05.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:06.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:06.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:06.672][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:06.673][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:06.729][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:06.729][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:06.729][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:06.729][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:07.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:07.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:07.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:07.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:07.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:07.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:07.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:07.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:08.631][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:08.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:08.640][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:08.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:08.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:08.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:08.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:08.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:09.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:09.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:09.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:09.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:09.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:09.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:09.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:09.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:10.639][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:10.640][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:10.640][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:10.640][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:10.742][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:10.742][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:10.742][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:10.742][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:11.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:11.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:11.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:11.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:11.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:11.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:11.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:11.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:12.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:12.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:12.643][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:12.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:12.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:12.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:12.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:12.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:13.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:13.639][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:13.642][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:13.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:13.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:13.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:13.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:13.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:14.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:14.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:14.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:14.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:14.734][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:14.734][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:14.734][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:14.734][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:15.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:15.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:15.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:15.654][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:15.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:15.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:15.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:15.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:16.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:16.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:16.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:16.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:16.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:16.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:16.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:16.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:17.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:17.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:17.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:17.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:17.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:17.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:17.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:17.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:18.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:18.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:18.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:18.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:18.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:18.730][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:18.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:18.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:19.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:19.645][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:19.645][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:19.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:19.748][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:19.748][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:19.748][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:19.748][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:20.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:20.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:20.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:20.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:20.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:20.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:20.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:20.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:21.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:21.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:21.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:21.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:21.730][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:21.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:21.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:21.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:22.638][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:22.668][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:22.668][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:22.668][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:22.819][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:22.819][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:22.819][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:22.819][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:23.636][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:23.639][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:23.639][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:23.643][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:23.744][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:23.744][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:23.744][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:23.744][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:24.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:24.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A5: amplitude )
+[14:36:24.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:24.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:24.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:24.731][S][sensor]: 'LDC Channel 1 Raw' >> 933 
+[14:36:24.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:24.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:25.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:25.638][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:25.642][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:25.647][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:25.732][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:25.732][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:25.732][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:25.732][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:26.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A8: amplitude )
+[14:36:26.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A4: amplitude )
+[14:36:26.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:26.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:26.731][S][sensor]: 'LDC Channel 0 Raw' >> 936 
+[14:36:26.731][S][sensor]: 'LDC Channel 1 Raw' >> 932 
+[14:36:26.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:26.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:27.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A5: amplitude )
+[14:36:27.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A8: amplitude )
+[14:36:27.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:27.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:27.730][S][sensor]: 'LDC Channel 0 Raw' >> 933 
+[14:36:27.731][S][sensor]: 'LDC Channel 1 Raw' >> 936 
+[14:36:27.731][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:27.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:28.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A3: amplitude )
+[14:36:28.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A9: amplitude )
+[14:36:28.650][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13C8: amplitude )
+[14:36:28.651][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:28.730][S][sensor]: 'LDC Channel 0 Raw' >> 931 
+[14:36:28.730][S][sensor]: 'LDC Channel 1 Raw' >> 937 
+[14:36:28.730][S][sensor]: 'LDC Channel 2 Raw' >> 968 
+[14:36:28.730][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:29.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A3: amplitude )
+[14:36:29.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A7: amplitude )
+[14:36:29.643][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13CB: amplitude )
+[14:36:29.647][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:29.731][S][sensor]: 'LDC Channel 0 Raw' >> 931 
+[14:36:29.731][S][sensor]: 'LDC Channel 1 Raw' >> 935 
+[14:36:29.731][S][sensor]: 'LDC Channel 2 Raw' >> 971 
+[14:36:29.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:30.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A3: amplitude )
+[14:36:30.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A2: amplitude )
+[14:36:30.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D3: amplitude )
+[14:36:30.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:30.731][S][sensor]: 'LDC Channel 0 Raw' >> 931 
+[14:36:30.731][S][sensor]: 'LDC Channel 1 Raw' >> 930 
+[14:36:30.731][S][sensor]: 'LDC Channel 2 Raw' >> 979 
+[14:36:30.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:31.632][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A4: amplitude )
+[14:36:31.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:31.643][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D5: amplitude )
+[14:36:31.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:31.730][S][sensor]: 'LDC Channel 0 Raw' >> 932 
+[14:36:31.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:31.731][S][sensor]: 'LDC Channel 2 Raw' >> 981 
+[14:36:31.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:32.641][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A7: amplitude )
+[14:36:32.642][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:32.642][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:32.642][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:32.744][S][sensor]: 'LDC Channel 0 Raw' >> 935 
+[14:36:32.744][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:32.744][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:32.744][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:33.635][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:33.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:33.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:33.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:33.731][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:33.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:33.731][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:33.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:34.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:34.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:34.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:34.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:34.731][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:34.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:34.731][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:34.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:35.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:35.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:35.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:35.645][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:35.731][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:35.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:35.731][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:35.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:36.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:36.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:36.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:36.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:36.736][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:36.736][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:36.736][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:36.736][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:37.631][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:37.636][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:37.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:37.656][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:37.732][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:37.732][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:37.732][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:37.732][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:38.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A7: amplitude )
+[14:36:38.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:38.642][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:38.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:38.731][S][sensor]: 'LDC Channel 0 Raw' >> 935 
+[14:36:38.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:38.731][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:38.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:39.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A6: amplitude )
+[14:36:39.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:39.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:39.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:39.737][S][sensor]: 'LDC Channel 0 Raw' >> 934 
+[14:36:39.737][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:39.737][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:39.737][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:40.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A7: amplitude )
+[14:36:40.637][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:40.641][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:40.646][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:40.731][S][sensor]: 'LDC Channel 0 Raw' >> 935 
+[14:36:40.731][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:40.731][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:40.731][S][sensor]: 'LDC Channel 3 Raw' >> 4095 
+[14:36:41.633][D][ldc1314:289]: Channel 0: conversion error (DATA=0x13A7: amplitude )
+[14:36:41.647][D][ldc1314:289]: Channel 1: conversion error (DATA=0x13A0: amplitude )
+[14:36:41.647][D][ldc1314:289]: Channel 2: conversion error (DATA=0x13D4: amplitude )
+[14:36:41.647][D][ldc1314:289]: Channel 3: conversion error (DATA=0x1FFF: amplitude )
+[14:36:41.750][S][sensor]: 'LDC Channel 0 Raw' >> 935 
+[14:36:41.750][S][sensor]: 'LDC Channel 1 Raw' >> 928 
+[14:36:41.750][S][sensor]: 'LDC Channel 2 Raw' >> 980 
+[14:36:41.750][S][sensor]: 'LDC Channel 3 Raw' >> 4095 

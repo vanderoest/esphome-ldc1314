@@ -45,9 +45,9 @@ Shutdown (SD pin high) is the lowest-power state but disables I2C entirely — n
 
 Full taxonomy in `docs/summaries/status_monitoring_summary.md`. Summary of the three parallel reporting paths, all independently gated per-condition via `ERROR_CONFIG`:
 
-1. **DATAx-embedded** (`*_ERR2OUT` bits) — not sticky, auto-clears on the next good conversion, cleared immediately on read.
-2. **STATUS register** — unconditional per condition type (no separate enable bit; STATUS.ERR_* always updates when the condition occurs), sticky except `UNREADCONVx`, cleared only by reading STATUS. `ERR_CHAN` latches only the *first* erroring channel until STATUS is read — a second channel's error can be lost from channel attribution if STATUS isn't read promptly.
-3. **INTB pin** (`*_ERR2INT` bits) — requires both the specific `ERROR_CONFIG` bit and `CONFIG.INTB_DIS=0`.
+1. **DATAx-embedded** (`*_ERR2OUT` bits) — not sticky, auto-clears on the next good conversion, cleared immediately on read. Amplitude-high and amplitude-low share a single bit here (`ERR_AE`) and are OR-ed together, so this path cannot distinguish them. Zero-count has no DATAx path at all (SNOA959 Table 1).
+2. **STATUS register** (`*_ERR2INT` bits) — **`STATUS.ERR_*` is only updated when the matching `*_ERR2INT` bit is set.** The datasheet is explicit (§7.6.23): "b0: Do not report … by asserting INTB pin *and STATUS register*." Leaving those bits clear leaves STATUS permanently empty — a mistake this driver shipped with initially, see `docs/homewizard_reference_config.md`. Sticky except `UNREADCONVx`, cleared only by reading STATUS. `ERR_CHAN` latches only the *first* erroring channel until STATUS is read — a second channel's error can be lost from channel attribution if STATUS isn't read promptly. Unlike DATAx, `ERR_AHE`/`ERR_ALE` are separate bits, making this the only way to tell amplitude-high from amplitude-low (i.e. whether `IDRIVE` is too high or too low).
+3. **INTB pin** — requires the same `*_ERR2INT` bit **and** `CONFIG.INTB_DIS=0`. Because the pin has this second, independent gate, `*_ERR2INT` can be enabled purely for STATUS reporting while leaving the pin idle (`INTB_DIS=1`) — which is what this driver does by default.
 
 Recommended pattern (from SNOA959): read STATUS on every INTB assertion (or every poll cycle if not using INTB) to avoid losing a second-channel error to the sticky `ERR_CHAN` latch.
 
@@ -96,3 +96,10 @@ Several settings are interdependent; the driver's config validation (Python `CON
 | Sensor Drive Configuration | SNOA950 | `docs/snoa950.md` | `docs/snoa950.pdf` |
 | Sensor Status Monitoring | SNOA959 | `docs/snoa959.md` | `docs/snoa959.pdf` |
 | LDC Sensor Design (unresolved) | SNOA930 | — | — (stub HTML only, not usable) |
+
+Non-TI reference material captured from the target hardware:
+
+| Doc | What it is | Markdown | Raw |
+|---|---|---|---|
+| HomeWizard stock firmware boot log | Register config used by the original firmware on this board | `docs/original-homewizard-boot.md` | `docs/original-homewizard-boot.log` |
+| HomeWizard vs. this driver | Register-by-register comparison, encoding proofs, open tuning candidates | `docs/homewizard_reference_config.md` | — |

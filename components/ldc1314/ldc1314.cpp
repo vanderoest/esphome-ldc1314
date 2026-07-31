@@ -184,16 +184,26 @@ bool LDC1314Component::configure_() {
     return false;
   }
 
-  // ERROR_CONFIG: always embed error flags in each channel's own DATAx register (this is how
-  // per-channel diagnostics and error-aware publishing work without wiring INTB -- see
-  // design_decisions.md "PollingComponent, not interrupt-driven"). Additionally route errors to
-  // INTB/STATUS-driven interrupts only if the user opted in.
+  // ERROR_CONFIG (datasheet §7.6.23), composed from two independent groups:
+  //
+  //  *_ERR2OUT (bits 15:11) -- embed the error flag in the channel's own DATAx register. This is
+  //  what drives the per-channel error binary_sensors. Note AH and AL share a single DATAx bit
+  //  (ERR_AE) and are OR-ed together there, so DATAx alone cannot say high-vs-low (SNOA959 §1.1).
+  //
+  //  *_ERR2INT (bits 7:2) -- despite the "2INT" name these gate BOTH the INTB pin AND whether
+  //  STATUS.ERR_* is updated at all: "b0: Do not report ... by asserting INTB pin and STATUS
+  //  register." Leaving them clear (as this driver used to) means STATUS never reports anything,
+  //  which also makes amplitude-high indistinguishable from amplitude-low and hides zero-count
+  //  errors entirely -- SNOA959 Table 1 gives zero-count no DATAx path at all. So they are now
+  //  always enabled; the physical pin stays separately gated by CONFIG.INTB_DIS below.
   uint16_t error_config = ERROR_CONFIG_UR_ERR2OUT | ERROR_CONFIG_OR_ERR2OUT | ERROR_CONFIG_WD_ERR2OUT |
-                           ERROR_CONFIG_AH_ERR2OUT | ERROR_CONFIG_AL_ERR2OUT;
+                           ERROR_CONFIG_AH_ERR2OUT | ERROR_CONFIG_AL_ERR2OUT | ERROR_CONFIG_UR_ERR2INT |
+                           ERROR_CONFIG_OR_ERR2INT | ERROR_CONFIG_WD_ERR2INT | ERROR_CONFIG_AH_ERR2INT |
+                           ERROR_CONFIG_AL_ERR2INT | ERROR_CONFIG_ZC_ERR2INT;
   if (this->report_errors_on_intb_) {
-    error_config |= ERROR_CONFIG_UR_ERR2INT | ERROR_CONFIG_OR_ERR2INT | ERROR_CONFIG_WD_ERR2INT |
-                     ERROR_CONFIG_AH_ERR2INT | ERROR_CONFIG_AL_ERR2INT | ERROR_CONFIG_ZC_ERR2INT |
-                     ERROR_CONFIG_DRDY_2INT;
+    // DRDY is not an error condition and would pulse INTB on every conversion, so it is only
+    // enabled when the user actually wants the interrupt pin driven.
+    error_config |= ERROR_CONFIG_DRDY_2INT;
   }
   if (!this->write_byte_16(REG_ERROR_CONFIG, error_config)) {
     ESP_LOGE(TAG, "Failed to write ERROR_CONFIG");
@@ -246,6 +256,12 @@ bool LDC1314Component::configure_() {
     return false;
   }
 
+  // Companion to the per-channel CH[n] trace above, for the device-global registers. The stock
+  // HomeWizard firmware never prints these, so they have no reference counterpart -- but they
+  // are how a configuration problem in the global setup is diagnosed at all.
+  ESP_LOGD(TAG, "GLOBAL| MUX_CONFIG:0x%04X| ERROR_CONFIG:0x%04X| RESET_DEV:0x%04X| CONFIG:0x%04X", mux_config,
+           error_config, reset_dev, config);
+
   return true;
 }
 
@@ -267,6 +283,13 @@ bool LDC1314Component::write_channel_config_(uint8_t channel) {
   uint16_t drive_current = static_cast<uint16_t>(ch.idrive) << DRIVE_CURRENT_IDRIVE_SHIFT;
   if (!this->write_byte_16(drive_current_register(channel), drive_current))
     return false;
+
+  // Trace the composed register words actually written, not the YAML inputs -- dump_config()
+  // already reports the latter. Having both is what makes an encoding mistake visible (e.g.
+  // "IDRIVE: 18" vs "DRIVE:0x9000"). Format deliberately mirrors the stock HomeWizard firmware's
+  // own boot log (docs/original-homewizard-boot.md §6) so the two can be diffed by eye.
+  ESP_LOGD(TAG, "CH[%u]| RCOUNT:0x%04X| OFFSET:0x%04X| SETTLE:0x%04X| CLOCK:0x%04X| DRIVE:0x%04X", channel,
+           ch.rcount, ch.offset, ch.settlecount, clock_dividers, drive_current);
 
   return true;
 }
@@ -315,10 +338,17 @@ void LDC1314Component::read_status_() {
       STATUS_ERR_UR | STATUS_ERR_OR | STATUS_ERR_WD | STATUS_ERR_AHE | STATUS_ERR_ALE | STATUS_ERR_ZC;
   if (status & ERROR_BITS) {
     uint8_t err_chan = (status >> STATUS_ERR_CHAN_SHIFT) & STATUS_ERR_CHAN_MASK;
+    // Naming the individual bits matters: unlike DATAx.ERR_AE (which OR-es the two amplitude
+    // conditions together) STATUS separates them, so this is the only place that says whether
+    // the sensor drive current is too high or too low.
     ESP_LOGD(TAG,
-             "STATUS reports an error, first attributed to channel %u (STATUS=0x%04X) -- see "
-             "per-channel error flags for full multi-channel attribution",
-             err_chan, status);
+             "STATUS=0x%04X, first attributed to channel %u:%s%s%s%s%s%s -- see per-channel error "
+             "flags for full multi-channel attribution",
+             status, err_chan, (status & STATUS_ERR_UR) ? " under-range" : "",
+             (status & STATUS_ERR_OR) ? " over-range" : "", (status & STATUS_ERR_WD) ? " watchdog-timeout" : "",
+             (status & STATUS_ERR_AHE) ? " amplitude-high(reduce idrive)" : "",
+             (status & STATUS_ERR_ALE) ? " amplitude-low(raise idrive)" : "",
+             (status & STATUS_ERR_ZC) ? " zero-count" : "");
   }
   this->status_clear_warning();
 }
