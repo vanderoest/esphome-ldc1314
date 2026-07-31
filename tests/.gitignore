@@ -4,3 +4,4 @@
 /.esphome/
 /secrets.yaml
 watermeter-test.yaml
+watermeter-test.log
