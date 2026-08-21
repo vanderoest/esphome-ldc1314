@@ -398,12 +398,12 @@ void LDC1314Component::maybe_log_error_summary_(uint32_t now) {
   if (!any)
     return;
 
-  ESP_LOGD(TAG, "Error summary (last %u ms):", elapsed_ms);
+  ESP_LOGD(TAG, "Error summary (last %u ms):", static_cast<unsigned>(elapsed_ms));
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     if (!this->channels_[channel].active())
       continue;
     if (this->channel_error_count_[channel] > 0) {
-      ESP_LOGD(TAG, "  Channel %u: %u error(s)", channel, this->channel_error_count_[channel]);
+      ESP_LOGD(TAG, "  Channel %u: %u error(s)", channel, static_cast<unsigned>(this->channel_error_count_[channel]));
     }
     this->channel_error_count_[channel] = 0;
   }
@@ -411,9 +411,15 @@ void LDC1314Component::maybe_log_error_summary_(uint32_t now) {
 
 void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) const {
   // One CSV line per update() cycle -- `ts,ch0,ch1,ch2,...` over the active channels -- so a
-  // capture session is just `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a
-  // raw-trace log line"; used by Phase A's offline analysis in `tools/`).
-  std::string line = str_sprintf("TRACE,%u", now);
+  // capture session is `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a raw-trace
+  // log line"; used by Phase A's offline analysis in `tools/`).
+  //
+  // ESP_LOGVV, not ESP_LOGD: at 100 Hz this is itself a 100 lines/s flood, and unlike the error
+  // logging above there's no state-transition to gate on -- every cycle is meant to be logged
+  // during a capture. VERY_VERBOSE is compiled out entirely under the normal `logger: level:
+  // DEBUG`, so day-to-day operation stays quiet; a capture session needs `level: VERY_VERBOSE`
+  // (optionally scoped with `logs: {ldc1314: VERY_VERBOSE}`) and a reflash.
+  std::string line = str_sprintf("TRACE,%u", static_cast<unsigned>(now));
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     if (!this->channels_[channel].active())
       continue;
@@ -423,7 +429,7 @@ void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) cons
       line += str_sprintf(",%u", raw_values[channel]);
     }
   }
-  ESP_LOGD(TAG, "%s", line.c_str());
+  ESP_LOGVV(TAG, "%s", line.c_str());
 }
 
 void LDC1314Component::read_status_() {
