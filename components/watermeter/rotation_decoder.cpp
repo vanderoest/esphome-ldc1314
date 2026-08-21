@@ -9,40 +9,6 @@ static constexpr double kPi = 3.14159265358979323846;
 
 RotationDecoder::RotationDecoder(const DecoderConfig &config) : config_(config) {}
 
-void RotationDecoder::update_activity_(const float ordered[3]) {
-  for (int i = 0; i < 3; i++)
-    this->activity_buf_[i][this->activity_buf_pos_] = ordered[i];
-  this->activity_buf_pos_ = (this->activity_buf_pos_ + 1) % kActivityWindowSamples;
-  if (this->activity_buf_count_ < kActivityWindowSamples)
-    this->activity_buf_count_++;
-
-  float range_sum = 0;
-  for (int i = 0; i < 3; i++) {
-    float lo = this->activity_buf_[i][0];
-    float hi = lo;
-    for (int j = 1; j < this->activity_buf_count_; j++) {
-      float v = this->activity_buf_[i][j];
-      if (v < lo)
-        lo = v;
-      if (v > hi)
-        hi = v;
-    }
-    range_sum += hi - lo;
-  }
-  this->activity_ = range_sum;
-
-  // A partial (not-yet-full) window must never be read as "parked" -- that would freeze the
-  // envelope before it has ever seen real motion, right at startup.
-  bool above_threshold = this->activity_buf_count_ >= kActivityWindowSamples && this->activity_ > this->config_.activity_threshold;
-  if (above_threshold) {
-    if (this->rotating_streak_ < kRotatingSustainSamples)
-      this->rotating_streak_++;
-  } else {
-    this->rotating_streak_ = 0;  // fast-off: see kRotatingSustainSamples's comment in the header
-  }
-  this->rotating_ = this->rotating_streak_ >= kRotatingSustainSamples;
-}
-
 void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
   // A learn pass (Phase D's button:) is authoritative once set -- the free-running follower never
   // overwrites it. Re-enabling auto-adaptation, if ever wanted, would be a deliberate new API, not
@@ -80,7 +46,7 @@ void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
     // rotating logic then protects the bad calibration indefinitely, since the resulting noise
     // looks enough like "activity" to avoid re-adapting. 5.0 sits comfortably above the measured
     // noise floor (~1-2 codes) and well below the true signal amplitude, so only genuine partial
-    // rotation can satisfy it -- matches activity_threshold's own reasoning and margin.
+    // rotation can satisfy it.
     static constexpr float kBootstrapMinAmp = 5.0f;
     bool all_spread = true;
     for (int i = 0; i < 3; i++) {
@@ -94,7 +60,8 @@ void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
 
   // Frozen: an envelope that keeps decaying toward a parked rotor's resting value destroys the
   // transform the moment flow resumes (.plan "Normalise") -- mid/amp simply hold their last
-  // known-good values until activity_ says the rotor is moving again.
+  // known-good values until rotating_ (recent confirmed motion, see its declaration in the
+  // header) says the rotor is moving again.
   if (!this->rotating_)
     return;
 
@@ -141,7 +108,12 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
     dt = 0;  // a timestamp going backwards (e.g. a wraparound clock source) must not un-decay
   this->last_timestamp_s_ = timestamp_s;
 
-  this->update_activity_(ordered);
+  // "rotating" reflects motion confirmed as of the *previous* sample's accumulation decision --
+  // this call necessarily runs before this sample's own theta/accumulation is known, and lagging
+  // by one sample is immaterial at the 100 Hz design rate. See rotating_recent_window_s's comment
+  // in the header for why this is derived from confirmed accumulation rather than raw noise.
+  this->rotating_ = this->have_motion_timestamp_ &&
+                     (timestamp_s - this->last_motion_timestamp_s_) < this->config_.rotating_recent_window_s;
   this->update_envelope_(ordered, dt);
 
   float x[3];
@@ -210,6 +182,8 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
     if (std::fabs(delta) > this->config_.hysteresis_rad) {
       this->theta_c_ += delta;
       this->accumulated_rad_ += delta;
+      this->last_motion_timestamp_s_ = timestamp_s;
+      this->have_motion_timestamp_ = true;
     }
   }
 

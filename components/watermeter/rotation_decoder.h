@@ -22,17 +22,19 @@ struct DecoderConfig {
   // envelope-fraction per second, e.g. 0.01 = 1% of the current amplitude decays per second.
   float envelope_decay_per_s = 0.02f;
 
-  // Below this windowed activity (per-channel (max-min) over the last ~1s, summed across the
-  // three channels, in raw-code-equivalent units), the rotor is considered parked and the
-  // envelope follower freezes -- see rotation_decoder.cpp's update() for why a decaying envelope
-  // on a parked rotor is actively harmful. A *per-sample* delta was tried first and rejected: at
-  // this meter's ~9-10s/revolution real-world rate and the 100 Hz design sample rate, real
-  // rotation moves as little as ~0.1 code/sample on average -- indistinguishable from LSB dither
-  // at the single-sample level. A ~1s window separates them cleanly: measured windowed activity
-  // sits at 1-4 at rest vs. 12-62 (occasionally briefly lower, e.g. mid-pour pauses) while
-  // flowing, across two independent captures (TODO.md Phase C). Default chosen with margin above
-  // the rest ceiling; needs revisiting if a much slower real leak is ever captured.
-  float activity_threshold = 5.0f;
+  // The rotor is considered "rotating" -- and the envelope follower allowed to keep adapting --
+  // for this many seconds after the last real, hysteresis-confirmed angle step. Two raw-noise
+  // heuristics were tried here first (a per-sample delta, then a windowed range with a sustained-
+  // crossing requirement) and both were defeated by real hardware noise floors that turned out to
+  // vary session-to-session in ways neither threshold anticipated -- one produced steady phantom
+  // rotation, the other still let an occasional false "rotating" through even after requiring a
+  // full extra second of sustained crossing (TODO.md Phase D). A confirmed accumulation event is
+  // categorically different: by the time it fires it has already passed the calibration gate, the
+  // r_min signal-quality gate, AND the hysteresis threshold below, so it inherits all of that
+  // protection for free instead of needing its own separately-tuned noise ceiling. At this
+  // meter's real observed rate, confirmed steps land roughly every 0.25-0.3s during continuous
+  // flow (10 deg hysteresis / ~9-10s per revolution), comfortably inside a 2s window with no gaps.
+  float rotating_recent_window_s = 2.0f;
 
   // Signal-quality gate: accumulation (and envelope adaptation, once past the initial fill) is
   // suppressed while r = hypot(alpha, beta) is below this. Diagnoses a detached/failing coil as a
@@ -88,12 +90,7 @@ class RotationDecoder {
   void set_learned_envelope(const float mid[3], const float amp[3]);
 
  private:
-  // ~1s at the 100 Hz design sample rate (.plan Part 1) -- see activity_threshold's comment for
-  // why a window, not a per-sample delta, is what actually distinguishes rotation from dither.
-  static constexpr int kActivityWindowSamples = 100;
-
   void update_envelope_(const float raw[3], double dt);
-  void update_activity_(const float raw[3]);
 
   DecoderConfig config_;
 
@@ -102,22 +99,11 @@ class RotationDecoder {
   bool envelope_filled_ = false;
   bool envelope_learned_ = false;
 
-  float activity_buf_[3][kActivityWindowSamples] = {};
-  int activity_buf_pos_ = 0;
-  int activity_buf_count_ = 0;
-  float activity_ = 0;  // last computed windowed (max-min) sum across channels
-  // Found on real hardware (captures/log3.txt, a fresh capture after the calibration-gating fix):
-  // a single windowed reading crossing activity_threshold isn't reliable enough on its own -- the
-  // real noise floor apparently varies enough between hardware/sessions that a bare threshold
-  // crossing happens from pure dither, which then lets update_envelope_()'s decay branch erode a
-  // good post-flow calibration back toward noise-sensitivity, sample by sample. Real flow lasts
-  // many seconds; a noise-driven crossing is a brief blip. Requiring it sustained for a full
-  // window (not just one instant) is a robust discriminator that doesn't depend on tuning the
-  // threshold to a noise ceiling that moves around. Slow-on (protects the calibration), fast-off
-  // (drops "rotating" the instant activity dips, so genuine flow stopping is still reflected
-  // promptly in the published `flowing` diagnostic).
-  static constexpr uint16_t kRotatingSustainSamples = kActivityWindowSamples;
-  uint16_t rotating_streak_ = 0;
+  // "rotating" is derived from recent confirmed motion (see rotating_recent_window_s), not a raw
+  // noise heuristic -- last_motion_timestamp_s_ is stamped only when the hysteresis-confirmed
+  // accumulation step below actually fires.
+  double last_motion_timestamp_s_ = 0;
+  bool have_motion_timestamp_ = false;
   bool rotating_ = false;
 
   double theta_c_ = 0;   // hysteresis-tracked angle, unwrapped

@@ -153,6 +153,27 @@ void test_phaseb_gain8_offset(const std::string &capture_dir) {
   double rest2_drift = std::fabs(rest2_end - pour_end);
   std::printf("      post-pour rest drift: %.4f rev\n", rest2_drift);
   check(rest2_drift < 0.02, "gain-8 capture, post-pour rest: near-zero drift");
+
+  // Regression check for the field bug found after real calibration: signal_quality reading
+  // 1.15-1.20+ isn't itself wrong (the locus has ~20% ripple, TODO.md Phase A), but a "rotating"
+  // false-positive from noise letting the envelope erode would show up as r climbing unbounded
+  // over an extended rest period, not settling. Replay the whole post-pour rest segment on a
+  // single decoder and track the max -- this doesn't reproduce the exact session-dependent noise
+  // floor that triggered the bug (this capture's dither didn't happen to cross that threshold),
+  // but it does catch any regression that makes r diverge instead of staying bounded near the
+  // locus's own known ripple.
+  watermeter_core::RotationDecoder decoder2;
+  float max_r_post_pour = 0.0f;
+  for (const auto &s : samples) {
+    decoder2.update(s.ch, s.t_s);
+    if (s.hh < 0)
+      continue;
+    int ws = wall_seconds(s.hh, s.mm, s.ss);
+    if (ws >= 19 * 3600 + 50 * 60 + 7 && ws <= 19 * 3600 + 50 * 60 + 22)
+      max_r_post_pour = std::max(max_r_post_pour, decoder2.signal_quality());
+  }
+  std::printf("      max signal_quality during post-pour rest: %.3f\n", max_r_post_pour);
+  check(max_r_post_pour < 1.5, "gain-8 capture: signal quality stays bounded (no unbounded drift) through rest");
 }
 
 // Full-file replay of both captures: nothing NaN/infinite, regardless of segment boundaries.
