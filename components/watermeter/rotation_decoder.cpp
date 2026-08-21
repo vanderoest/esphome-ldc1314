@@ -30,10 +30,17 @@ void RotationDecoder::update_activity_(const float ordered[3]) {
     range_sum += hi - lo;
   }
   this->activity_ = range_sum;
+
   // A partial (not-yet-full) window must never be read as "parked" -- that would freeze the
   // envelope before it has ever seen real motion, right at startup.
-  this->rotating_ =
-      this->activity_buf_count_ >= kActivityWindowSamples && this->activity_ > this->config_.activity_threshold;
+  bool above_threshold = this->activity_buf_count_ >= kActivityWindowSamples && this->activity_ > this->config_.activity_threshold;
+  if (above_threshold) {
+    if (this->rotating_streak_ < kRotatingSustainSamples)
+      this->rotating_streak_++;
+  } else {
+    this->rotating_streak_ = 0;  // fast-off: see kRotatingSustainSamples's comment in the header
+  }
+  this->rotating_ = this->rotating_streak_ >= kRotatingSustainSamples;
 }
 
 void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
@@ -161,7 +168,12 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
   float r = calibrated ? std::hypot(alpha, beta) : 0.0f;
 
   this->last_r_ = r;
-  this->last_theta_ = theta;
+  // Same reasoning as r above, and originally missed: an uncalibrated theta is exactly as
+  // meaningless as an uncalibrated r, but the first version of this fix only gated r, so the
+  // `angle` diagnostic kept publishing wild swings from raw noise even after r/accumulation were
+  // correctly suppressed. Hold the last trustworthy value instead of publishing noise.
+  if (calibrated)
+    this->last_theta_ = theta;
 
   if (!calibrated) {
     // Don't anchor theta_c_ to an uncalibrated (noise-derived) theta -- that would cause a

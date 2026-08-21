@@ -106,6 +106,18 @@ class RotationDecoder {
   int activity_buf_pos_ = 0;
   int activity_buf_count_ = 0;
   float activity_ = 0;  // last computed windowed (max-min) sum across channels
+  // Found on real hardware (captures/log3.txt, a fresh capture after the calibration-gating fix):
+  // a single windowed reading crossing activity_threshold isn't reliable enough on its own -- the
+  // real noise floor apparently varies enough between hardware/sessions that a bare threshold
+  // crossing happens from pure dither, which then lets update_envelope_()'s decay branch erode a
+  // good post-flow calibration back toward noise-sensitivity, sample by sample. Real flow lasts
+  // many seconds; a noise-driven crossing is a brief blip. Requiring it sustained for a full
+  // window (not just one instant) is a robust discriminator that doesn't depend on tuning the
+  // threshold to a noise ceiling that moves around. Slow-on (protects the calibration), fast-off
+  // (drops "rotating" the instant activity dips, so genuine flow stopping is still reflected
+  // promptly in the published `flowing` diagnostic).
+  static constexpr uint16_t kRotatingSustainSamples = kActivityWindowSamples;
+  uint16_t rotating_streak_ = 0;
   bool rotating_ = false;
 
   double theta_c_ = 0;   // hysteresis-tracked angle, unwrapped
