@@ -1,8 +1,9 @@
 #pragma once
 
-// A button that starts a learn pass -- rotate the meter through exactly one known revolution
-// over the configured duration, and WatermeterComponent::start_learn_pass() captures per-phase
-// mid/amp from whatever it sees. It only forwards to the hub, same as ldc1314's diagnostics
+// A button that starts a learn pass -- let water run continuously over the configured duration,
+// and WatermeterComponent::start_learn_pass() captures per-phase mid/amp from whatever it sees.
+// Doesn't need to be exactly one revolution (an installed meter can't be hand-turned to order);
+// it only needs to cover at least one. It only forwards to the hub, same as ldc1314's diagnostics
 // button -- an automation calling start_learn_pass() directly would work identically.
 
 #include "esphome/components/button/button.h"
@@ -20,7 +21,7 @@ class WatermeterLearnButton : public button::Button, public Parented<WatermeterC
  protected:
   void press_action() override;
 
-  float duration_s_{10.0f};
+  float duration_s_{60.0f};
 };
 
 }  // namespace watermeter

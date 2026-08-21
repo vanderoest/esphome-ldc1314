@@ -100,7 +100,7 @@ button:
   - platform: watermeter
     watermeter_id: meter
     name: "Watermeter learn pass"
-    duration: 10s
+    duration: 60s
 
 switch:
   # Required so the ldc1314 component directory's switch platform file has switch:/switch.h

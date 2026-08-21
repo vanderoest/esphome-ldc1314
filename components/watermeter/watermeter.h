@@ -73,9 +73,11 @@ class WatermeterComponent : public Component {
   // solving install_offset = x - measured_volume, per .plan "Persistence and meter alignment".
   void set_total(double liters);
 
-  // Learn-pass support (Phase D's `button:`): capture per-phase mid/amp over one known revolution
-  // and hand them to the decoder via set_learned_envelope(). Trigger-agnostic, like ldc1314's
-  // diagnostics button -- an automation could call this equally well.
+  // Learn-pass support (Phase D's `button:`): capture per-phase mid/amp over a window covering
+  // at least one revolution -- an installed meter can't be hand-turned to exactly one, so the
+  // window just needs to be generous, not precise -- and hand them to the decoder via
+  // set_learned_envelope(). Trigger-agnostic, like ldc1314's diagnostics button -- an automation
+  // could call this equally well.
   void start_learn_pass(float duration_s);
 
  protected:
@@ -87,6 +89,16 @@ class WatermeterComponent : public Component {
 
   sensor::Sensor *phase_[3]{nullptr, nullptr, nullptr};
   float last_phase_value_[3] = {NAN, NAN, NAN};
+  // Set true when a phase's callback fires, cleared once all three have and a decode has run.
+  // The three phase sensors publish as three *separate* callbacks per underlying ldc1314 cycle,
+  // not one synchronized triple -- decoding on every individual callback (the first version of
+  // this component) mixes a freshly-updated channel with 1-2 channels still holding the
+  // *previous* cycle's value on 2 of every 3 calls. Because ldc1314 always reads channels in the
+  // same fixed order, that isn't random noise that cancels out -- it's a repeating, systematic
+  // bias, and it integrated into real phantom rotation on hardware (a steady, drifting flow_rate
+  // reading with the meter sitting still). Waiting for a complete fresh set before decoding fixes
+  // it at the source, independent of phases: order or which channel a driver reads last.
+  bool phase_fresh_[3]{false, false, false};
 
   // Output entities -- all optional, set from sensor.py/binary_sensor.py. A nullptr here just
   // means publish_()/update_flow_rate_() skip that one.

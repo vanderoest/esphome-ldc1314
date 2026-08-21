@@ -38,7 +38,13 @@ void WatermeterComponent::setup() {
       continue;
     this->phase_[i]->add_on_state_callback([this, i](float state) {
       this->last_phase_value_[i] = state;
-      this->on_phase_sample_();
+      this->phase_fresh_[i] = true;
+      // Decode only once a complete fresh triple has arrived -- not on every individual
+      // callback. See phase_fresh_'s comment in watermeter.h for why that matters.
+      if (this->phase_fresh_[0] && this->phase_fresh_[1] && this->phase_fresh_[2]) {
+        this->phase_fresh_[0] = this->phase_fresh_[1] = this->phase_fresh_[2] = false;
+        this->on_phase_sample_();
+      }
     });
   }
 
@@ -249,7 +255,8 @@ void WatermeterComponent::start_learn_pass(float duration_s) {
   this->learn_active_ = true;
   this->learn_end_ms_ = millis() + static_cast<uint32_t>(duration_s * 1000.0f);
   this->learn_have_sample_ = false;
-  ESP_LOGI(TAG, "Learn pass started: rotate the meter through exactly one known revolution over the next %.1f s",
+  ESP_LOGI(TAG, "Learn pass started: let water run continuously for the next %.1f s (needs to cover at "
+                "least one full revolution, extra flow doesn't hurt)",
            duration_s);
 }
 
