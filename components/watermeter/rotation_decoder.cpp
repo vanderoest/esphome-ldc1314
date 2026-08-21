@@ -63,9 +63,21 @@ void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
       this->mid_[i] = (lo + hi) / 2.0f;
       this->amp_[i] = (hi - lo) / 2.0f;
     }
+    // 5.0 codes, not the original 0.5: found on real hardware, not in review. At the gain-8
+    // tuning (TODO.md Phase B), steady-state LSB dither alone reaches amp ~0.5-1.0 -- comfortably
+    // above the old 0.5 threshold -- so a meter that never rotates during the whole bootstrap
+    // window would "fill" from pure noise and permanently lock in a calibration ~30-50x smaller
+    // than the true signal amplitude (~34-48 codes, captures/2026-08-21_phaseb-gain8-offset.csv).
+    // Once locked that small, atan2 becomes hypersensitive to the same LSB noise it was
+    // calibrated from: theta swings wildly, r reads misleadingly high, and the freeze-while-not-
+    // rotating logic then protects the bad calibration indefinitely, since the resulting noise
+    // looks enough like "activity" to avoid re-adapting. 5.0 sits comfortably above the measured
+    // noise floor (~1-2 codes) and well below the true signal amplitude, so only genuine partial
+    // rotation can satisfy it -- matches activity_threshold's own reasoning and margin.
+    static constexpr float kBootstrapMinAmp = 5.0f;
     bool all_spread = true;
     for (int i = 0; i < 3; i++) {
-      if (this->amp_[i] < 0.5f)
+      if (this->amp_[i] < kBootstrapMinAmp)
         all_spread = false;
     }
     if (all_spread && !this->first_sample_)
@@ -134,14 +146,31 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
   float theta = std::atan2(beta, alpha);
   if (this->config_.invert_direction)
     theta = -theta;
-  float r = std::hypot(alpha, beta);
+
+  // Before the envelope is genuinely calibrated (real signal seen, or a learn pass set it),
+  // amp_ is derived purely from whatever's been observed so far -- which, for a meter that
+  // hasn't rotated yet, is LSB dither alone. Normalizing dither against its own amplitude makes
+  // it read as full-scale noise (r near 1, theta swinging wildly across the full range), not the
+  // near-zero it should be. Found on real hardware (captures/log3.txt): a meter sitting still
+  // reported signal_quality 0.667 and jumped by whole fractions of a revolution with raw codes
+  // barely moving. Forcing r to 0 while uncalibrated keeps that noise out of both the published
+  // diagnostic and the accumulation gate below, rather than relying on r_min to reject it (r_min
+  // is tuned against a real, calibrated locus's ~20% ripple -- not against noise self-normalized
+  // to look like signal, which can read arbitrarily high).
+  bool calibrated = this->envelope_filled_ || this->envelope_learned_;
+  float r = calibrated ? std::hypot(alpha, beta) : 0.0f;
 
   this->last_r_ = r;
   this->last_theta_ = theta;
 
-  if (!this->have_theta_c_) {
-    // Anchor the tracker to wherever the rotor happens to be on the first valid sample -- there
-    // is nothing to compare against yet, so nothing can accumulate this sample regardless.
+  if (!calibrated) {
+    // Don't anchor theta_c_ to an uncalibrated (noise-derived) theta -- that would cause a
+    // spurious jump of up to half a revolution the moment calibration completes and the tracker
+    // suddenly compares against a real angle instead. Wait for calibration, then anchor fresh.
+    this->have_theta_c_ = false;
+  } else if (!this->have_theta_c_) {
+    // Anchor the tracker to wherever the rotor happens to be on the first calibrated sample --
+    // there is nothing to compare against yet, so nothing can accumulate this sample regardless.
     this->theta_c_ = theta;
     this->have_theta_c_ = true;
   } else if (r > this->config_.r_min) {

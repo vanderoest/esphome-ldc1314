@@ -1,0 +1,725 @@
+[20:55:17.714][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:17.714][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:17.714][S][sensor]: 'Water' >> 11.796 L
+[20:55:17.714][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:17.714][S][sensor]: 'Signal quality' >> 0.000 
+[20:55:17.714][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:17.714][S][sensor]: 'Reverse flow' >> 514.756 L
+[20:55:17.714][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:17.832][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:17.832][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:17.832][S][sensor]: 'Water' >> 11.796 L
+[20:55:17.832][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:17.832][S][sensor]: 'Signal quality' >> 0.000 
+[20:55:17.832][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:17.832][S][sensor]: 'Reverse flow' >> 514.756 L
+[20:55:17.832][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:17.956][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:17.956][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:17.956][S][sensor]: 'Water' >> 11.796 L
+[20:55:17.956][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:17.956][S][sensor]: 'Signal quality' >> 0.667 
+[20:55:17.957][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:17.957][S][sensor]: 'Reverse flow' >> 514.756 L
+[20:55:17.957][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:18.072][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:18.072][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:18.072][S][sensor]: 'Water' >> 11.796 L
+[20:55:18.072][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:18.072][S][sensor]: 'Signal quality' >> 0.667 
+[20:55:18.072][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:18.072][S][sensor]: 'Reverse flow' >> 514.756 L
+[20:55:18.072][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:18.193][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:18.193][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:18.193][S][sensor]: 'Water' >> 11.796 L
+[20:55:18.193][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:18.193][S][sensor]: 'Signal quality' >> 0.667 
+[20:55:18.193][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:18.193][S][sensor]: 'Reverse flow' >> 515.090 L
+[20:55:18.193][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:18.310][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:18.310][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:18.310][S][sensor]: 'Water' >> 11.796 L
+[20:55:18.310][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:18.310][S][sensor]: 'Signal quality' >> 0.667 
+[20:55:18.310][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:18.310][S][sensor]: 'Reverse flow' >> 515.256 L
+[20:55:18.310][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:18.428][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:18.428][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:18.428][S][sensor]: 'Water' >> 11.796 L
+[20:55:18.428][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:18.428][S][sensor]: 'Signal quality' >> 0.667 
+[20:55:18.428][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:18.428][S][sensor]: 'Reverse flow' >> 515.423 L
+[20:55:18.428][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:18.547][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:18.547][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:18.547][S][sensor]: 'Water' >> 11.463 L
+[20:55:18.547][S][sensor]: 'Rotor angle' >> -120.0 °
+[20:55:18.547][S][sensor]: 'Signal quality' >> 0.445 
+[20:55:18.547][S][sensor]: 'Revolutions' >> -0.333 
+[20:55:18.547][S][sensor]: 'Reverse flow' >> 515.756 L
+[20:55:18.547][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:18.548][S][binary_sensor]: 'Water flowing' >> ON
+[20:55:18.673][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:18.673][S][sensor]: 'LDC Channel 1 Raw' >> 158 
+[20:55:18.673][S][sensor]: 'Water' >> 11.297 L
+[20:55:18.673][S][sensor]: 'Rotor angle' >> -179.9 °
+[20:55:18.673][S][sensor]: 'Signal quality' >> 0.445 
+[20:55:18.673][S][sensor]: 'Revolutions' >> -0.500 
+[20:55:18.673][S][sensor]: 'Reverse flow' >> 516.590 L
+[20:55:18.673][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:18.791][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:18.791][S][sensor]: 'LDC Channel 1 Raw' >> 158 
+[20:55:18.791][S][sensor]: 'Water' >> 11.297 L
+[20:55:18.791][S][sensor]: 'Rotor angle' >> -179.9 °
+[20:55:18.791][S][sensor]: 'Signal quality' >> 0.446 
+[20:55:18.791][S][sensor]: 'Revolutions' >> -0.500 
+[20:55:18.791][S][sensor]: 'Reverse flow' >> 516.756 L
+[20:55:18.791][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:18.909][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:18.909][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:18.909][S][sensor]: 'Water' >> 11.796 L
+[20:55:18.909][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:18.909][S][sensor]: 'Signal quality' >> 0.447 
+[20:55:18.910][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:18.910][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:18.910][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.031][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.031][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.031][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.031][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:19.031][S][sensor]: 'Signal quality' >> 0.448 
+[20:55:19.031][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.031][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.031][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.150][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:19.150][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.150][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.150][S][sensor]: 'Rotor angle' >> 120.0 °
+[20:55:19.150][S][sensor]: 'Signal quality' >> 0.000 
+[20:55:19.150][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.150][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.150][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.271][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.271][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.271][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.271][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:19.271][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:19.271][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.271][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.271][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.401][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.401][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.401][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.401][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:19.401][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:19.401][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.401][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.401][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.516][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.516][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.516][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.516][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:19.516][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:19.516][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.517][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.517][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.517][S][binary_sensor]: 'Water flowing' >> OFF
+[20:55:19.626][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.626][S][sensor]: 'LDC Channel 1 Raw' >> 158 
+[20:55:19.626][S][sensor]: 'Water' >> 11.964 L
+[20:55:19.626][S][sensor]: 'Rotor angle' >> 60.2 °
+[20:55:19.626][S][sensor]: 'Signal quality' >> 0.451 
+[20:55:19.626][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:19.626][S][sensor]: 'Reverse flow' >> 516.923 L
+[20:55:19.626][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:19.748][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.748][S][sensor]: 'LDC Channel 1 Raw' >> 158 
+[20:55:19.748][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.748][S][sensor]: 'Rotor angle' >> -177.4 °
+[20:55:19.748][S][sensor]: 'Signal quality' >> 0.002 
+[20:55:19.748][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.748][S][sensor]: 'Reverse flow' >> 517.593 L
+[20:55:19.748][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:19.870][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.870][S][sensor]: 'LDC Channel 1 Raw' >> 158 
+[20:55:19.870][S][sensor]: 'Water' >> 11.964 L
+[20:55:19.870][S][sensor]: 'Rotor angle' >> -177.4 °
+[20:55:19.870][S][sensor]: 'Signal quality' >> 0.002 
+[20:55:19.870][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:19.870][S][sensor]: 'Reverse flow' >> 517.593 L
+[20:55:19.870][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:19.993][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:19.993][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:19.993][S][sensor]: 'Water' >> 11.796 L
+[20:55:19.993][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:19.993][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:19.993][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:19.993][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:19.993][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.105][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:20.105][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.105][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.106][S][sensor]: 'Rotor angle' >> 179.8 °
+[20:55:20.106][S][sensor]: 'Signal quality' >> 0.001 
+[20:55:20.106][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.106][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.106][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.227][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:20.227][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.228][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.228][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:20.228][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:20.228][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.228][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.228][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.336][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:20.336][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.336][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.336][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:20.336][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:20.336][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.336][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.336][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.446][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:20.446][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.446][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.446][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:20.446][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:20.446][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.446][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.446][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.548][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:20.548][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.548][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.548][S][sensor]: 'Rotor angle' >> 179.8 °
+[20:55:20.548][S][sensor]: 'Signal quality' >> 0.001 
+[20:55:20.548][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.548][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.549][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.657][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:20.657][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.657][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.657][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:20.657][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:20.657][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.657][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.657][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.763][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:20.763][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.763][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.763][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:20.763][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:20.763][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.763][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.763][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.871][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:20.871][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.871][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.871][S][sensor]: 'Rotor angle' >> 179.8 °
+[20:55:20.871][S][sensor]: 'Signal quality' >> 0.001 
+[20:55:20.871][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.871][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.871][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:20.977][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:20.977][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:20.977][S][sensor]: 'Water' >> 11.796 L
+[20:55:20.977][S][sensor]: 'Rotor angle' >> 179.8 °
+[20:55:20.977][S][sensor]: 'Signal quality' >> 0.001 
+[20:55:20.977][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:20.977][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:20.977][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:21.086][S][sensor]: 'LDC Channel 0 Raw' >> 102 
+[20:55:21.086][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:21.086][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.086][S][sensor]: 'Rotor angle' >> 179.8 °
+[20:55:21.086][S][sensor]: 'Signal quality' >> 0.001 
+[20:55:21.086][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:21.086][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:21.086][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:21.190][S][sensor]: 'LDC Channel 0 Raw' >> 103 
+[20:55:21.190][S][sensor]: 'LDC Channel 1 Raw' >> 157 
+[20:55:21.190][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.190][S][sensor]: 'Rotor angle' >> 0.0 °
+[20:55:21.190][S][sensor]: 'Signal quality' >> 0.450 
+[20:55:21.190][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:21.190][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:21.190][S][sensor]: 'LDC Channel 2 Raw' >> 116 
+[20:55:21.311][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:21.311][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.311][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.311][S][sensor]: 'Rotor angle' >> -176.6 °
+[20:55:21.312][S][sensor]: 'Signal quality' >> 0.003 
+[20:55:21.312][S][sensor]: 'Revolutions' >> 0.000 
+[20:55:21.312][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:21.312][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:21.312][S][binary_sensor]: 'Water flowing' >> ON
+[20:55:21.436][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:21.436][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.436][S][sensor]: 'Water' >> 11.964 L
+[20:55:21.436][S][sensor]: 'Rotor angle' >> 60.3 °
+[20:55:21.436][S][sensor]: 'Signal quality' >> 0.452 
+[20:55:21.436][S][sensor]: 'Revolutions' >> 0.168 
+[20:55:21.436][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:21.436][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:21.555][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:21.555][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.555][S][sensor]: 'Water' >> 11.964 L
+[20:55:21.555][S][sensor]: 'Rotor angle' >> 60.3 °
+[20:55:21.555][S][sensor]: 'Signal quality' >> 0.453 
+[20:55:21.555][S][sensor]: 'Revolutions' >> 0.168 
+[20:55:21.555][S][sensor]: 'Reverse flow' >> 517.760 L
+[20:55:21.555][S][sensor]: 'LDC Channel 2 Raw' >> 117 
+[20:55:21.676][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:21.676][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.676][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.676][S][sensor]: 'Rotor angle' >> -0.1 °
+[20:55:21.676][S][sensor]: 'Signal quality' >> 0.428 
+[20:55:21.676][S][sensor]: 'Revolutions' >> -0.000 
+[20:55:21.676][S][sensor]: 'Reverse flow' >> 517.928 L
+[20:55:21.676][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:21.795][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:21.796][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.796][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.796][S][sensor]: 'Rotor angle' >> -0.1 °
+[20:55:21.796][S][sensor]: 'Signal quality' >> 0.428 
+[20:55:21.796][S][sensor]: 'Revolutions' >> -0.000 
+[20:55:21.796][S][sensor]: 'Reverse flow' >> 517.928 L
+[20:55:21.796][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:21.917][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:21.917][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:21.917][S][sensor]: 'Water' >> 11.796 L
+[20:55:21.917][S][sensor]: 'Rotor angle' >> -0.1 °
+[20:55:21.917][S][sensor]: 'Signal quality' >> 0.428 
+[20:55:21.917][S][sensor]: 'Revolutions' >> -0.000 
+[20:55:21.917][S][sensor]: 'Reverse flow' >> 517.928 L
+[20:55:21.917][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.037][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.037][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.037][S][sensor]: 'Water' >> 11.796 L
+[20:55:22.037][S][sensor]: 'Rotor angle' >> -0.1 °
+[20:55:22.037][S][sensor]: 'Signal quality' >> 0.428 
+[20:55:22.037][S][sensor]: 'Revolutions' >> -0.000 
+[20:55:22.037][S][sensor]: 'Reverse flow' >> 517.928 L
+[20:55:22.037][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.157][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.157][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.158][S][sensor]: 'Water' >> 11.796 L
+[20:55:22.158][S][sensor]: 'Rotor angle' >> -0.1 °
+[20:55:22.158][S][sensor]: 'Signal quality' >> 0.428 
+[20:55:22.158][S][sensor]: 'Revolutions' >> -0.000 
+[20:55:22.158][S][sensor]: 'Reverse flow' >> 517.928 L
+[20:55:22.158][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.283][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.283][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.284][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.284][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.284][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.284][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.284][S][sensor]: 'Reverse flow' >> 518.102 L
+[20:55:22.284][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.284][S][binary_sensor]: 'Water flowing' >> OFF
+[20:55:22.390][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.390][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.390][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.390][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.390][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.390][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.390][S][sensor]: 'Reverse flow' >> 518.276 L
+[20:55:22.390][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.501][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.501][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.501][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.501][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.501][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.501][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.501][S][sensor]: 'Reverse flow' >> 518.276 L
+[20:55:22.502][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.625][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:22.625][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.625][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.625][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:22.625][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:22.625][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.625][S][sensor]: 'Reverse flow' >> 518.276 L
+[20:55:22.625][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.747][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.747][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.747][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.747][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.747][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.748][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.748][S][sensor]: 'Reverse flow' >> 518.276 L
+[20:55:22.748][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.856][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.856][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.856][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.856][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.856][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.856][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.856][S][sensor]: 'Reverse flow' >> 518.276 L
+[20:55:22.857][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:22.980][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:22.980][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:22.980][S][sensor]: 'Water' >> 11.789 L
+[20:55:22.980][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:22.980][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:22.980][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:22.980][S][sensor]: 'Reverse flow' >> 518.449 L
+[20:55:22.980][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.090][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.090][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.090][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.090][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.090][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.091][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.091][S][sensor]: 'Reverse flow' >> 518.449 L
+[20:55:23.091][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.091][S][sensor]: 'Water flow' >> -0.042 L/min
+[20:55:23.212][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.212][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.212][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.212][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.212][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.212][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.212][S][sensor]: 'Reverse flow' >> 518.449 L
+[20:55:23.212][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.336][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:23.336][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.336][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.336][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:23.337][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:23.337][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.337][S][sensor]: 'Reverse flow' >> 518.449 L
+[20:55:23.337][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.444][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.444][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.444][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.444][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.444][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.444][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.444][S][sensor]: 'Reverse flow' >> 518.449 L
+[20:55:23.444][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.553][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.553][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.553][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.553][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.553][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.553][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.553][S][sensor]: 'Reverse flow' >> 518.623 L
+[20:55:23.553][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.662][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:23.662][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.662][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.662][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:23.662][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:23.662][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.662][S][sensor]: 'Reverse flow' >> 518.623 L
+[20:55:23.662][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.769][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.769][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.769][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.769][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.769][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.769][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.769][S][sensor]: 'Reverse flow' >> 518.623 L
+[20:55:23.770][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.878][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.878][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.878][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.878][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.878][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.878][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.878][S][sensor]: 'Reverse flow' >> 518.623 L
+[20:55:23.878][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:23.994][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:23.994][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:23.994][S][sensor]: 'Water' >> 11.789 L
+[20:55:23.994][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:23.994][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:23.994][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:23.994][S][sensor]: 'Reverse flow' >> 518.623 L
+[20:55:23.994][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.097][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.097][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.097][S][sensor]: 'Water' >> 11.789 L
+[20:55:24.097][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.097][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.097][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:24.097][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.097][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.204][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.204][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.204][S][sensor]: 'Water' >> 11.789 L
+[20:55:24.204][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.204][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.204][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:24.204][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.204][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.316][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.316][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.316][S][sensor]: 'Water' >> 11.789 L
+[20:55:24.316][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.316][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.316][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:24.316][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.316][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.436][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.436][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.436][S][sensor]: 'Water' >> 11.789 L
+[20:55:24.436][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.436][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.436][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:24.436][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.436][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.544][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.544][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.544][S][sensor]: 'Water' >> 11.964 L
+[20:55:24.544][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.544][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.544][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:24.544][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.544][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.654][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.654][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.654][S][sensor]: 'Water' >> 11.964 L
+[20:55:24.654][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.654][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.654][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:24.655][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.655][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.765][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.765][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.765][S][sensor]: 'Water' >> 11.964 L
+[20:55:24.765][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.766][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.766][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:24.766][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.766][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.874][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.874][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.874][S][sensor]: 'Water' >> 11.964 L
+[20:55:24.874][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.874][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.874][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:24.874][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.874][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:24.997][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:24.997][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:24.997][S][sensor]: 'Water' >> 11.964 L
+[20:55:24.997][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:24.997][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:24.997][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:24.997][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:24.997][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.105][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.105][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.105][S][sensor]: 'Water' >> 11.964 L
+[20:55:25.105][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.105][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.105][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:25.105][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:25.105][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.222][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.222][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.222][S][sensor]: 'Water' >> 11.964 L
+[20:55:25.222][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.222][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.222][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:25.222][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:25.222][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.325][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.325][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.325][S][sensor]: 'Water' >> 11.964 L
+[20:55:25.325][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.325][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.326][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:25.326][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:25.326][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.437][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.437][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.437][S][sensor]: 'Water' >> 11.964 L
+[20:55:25.437][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.437][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.437][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:25.437][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:25.437][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.545][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.545][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.545][S][sensor]: 'Water' >> 11.964 L
+[20:55:25.545][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.545][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.545][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:25.545][S][sensor]: 'Reverse flow' >> 518.797 L
+[20:55:25.545][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.652][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.652][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.652][S][sensor]: 'Water' >> 11.789 L
+[20:55:25.652][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.652][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.652][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:25.652][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:25.652][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.775][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.775][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.775][S][sensor]: 'Water' >> 11.789 L
+[20:55:25.775][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.775][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.775][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:25.775][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:25.775][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:25.880][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:25.880][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:25.880][S][sensor]: 'Water' >> 11.789 L
+[20:55:25.880][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:25.880][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:25.880][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:25.880][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:25.880][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.002][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.002][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.002][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.002][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.002][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.002][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.002][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.002][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.110][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.110][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.110][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.110][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.110][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.110][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.110][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.110][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.232][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.232][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.232][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.232][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.232][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.232][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.232][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.232][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.348][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.349][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.349][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.349][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.349][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.349][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.349][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.349][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.466][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.467][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.467][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.467][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.467][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.467][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.467][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.467][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.570][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.570][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.570][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.570][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.570][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.570][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.570][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.570][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.693][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.693][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.693][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.693][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.693][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.693][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.693][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.693][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.804][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.804][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.804][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.804][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.804][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.805][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.805][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.805][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:26.923][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:26.923][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:26.923][S][sensor]: 'Water' >> 11.964 L
+[20:55:26.923][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:26.923][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:26.923][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:26.923][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:26.923][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.046][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:27.046][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.046][S][sensor]: 'Water' >> 11.964 L
+[20:55:27.046][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:27.046][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:27.046][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:27.047][S][sensor]: 'Reverse flow' >> 518.971 L
+[20:55:27.047][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.152][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:27.152][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.152][S][sensor]: 'Water' >> 11.964 L
+[20:55:27.152][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:27.152][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:27.152][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:27.152][S][sensor]: 'Reverse flow' >> 519.142 L
+[20:55:27.152][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.276][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:27.276][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.276][S][sensor]: 'Water' >> 11.964 L
+[20:55:27.276][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:27.276][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:27.277][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:27.277][S][sensor]: 'Reverse flow' >> 519.142 L
+[20:55:27.277][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.381][S][sensor]: 'LDC Channel 0 Raw' >> 104 
+[20:55:27.381][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.381][S][sensor]: 'Water' >> 11.964 L
+[20:55:27.381][S][sensor]: 'Rotor angle' >> -124.5 °
+[20:55:27.381][S][sensor]: 'Signal quality' >> 0.024 
+[20:55:27.381][S][sensor]: 'Revolutions' >> 0.167 
+[20:55:27.381][S][sensor]: 'Reverse flow' >> 519.142 L
+[20:55:27.382][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.485][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:27.485][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.485][S][sensor]: 'Water' >> 11.789 L
+[20:55:27.485][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:27.485][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:27.485][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:27.485][S][sensor]: 'Reverse flow' >> 519.491 L
+[20:55:27.485][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.586][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:27.586][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.587][S][sensor]: 'Water' >> 11.789 L
+[20:55:27.587][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:27.587][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:27.587][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:27.587][S][sensor]: 'Reverse flow' >> 519.664 L
+[20:55:27.587][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.695][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:27.695][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.695][S][sensor]: 'Water' >> 11.789 L
+[20:55:27.695][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:27.695][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:27.695][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:27.695][S][sensor]: 'Reverse flow' >> 519.664 L
+[20:55:27.695][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.813][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:27.813][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.813][S][sensor]: 'Water' >> 11.789 L
+[20:55:27.813][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:27.813][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:27.813][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:27.814][S][sensor]: 'Reverse flow' >> 519.838 L
+[20:55:27.814][S][sensor]: 'LDC Channel 2 Raw' >> 118 
+[20:55:27.935][S][sensor]: 'LDC Channel 0 Raw' >> 105 
+[20:55:27.935][S][sensor]: 'LDC Channel 1 Raw' >> 159 
+[20:55:27.935][S][sensor]: 'Water' >> 11.789 L
+[20:55:27.935][S][sensor]: 'Rotor angle' >> -2.5 °
+[20:55:27.935][S][sensor]: 'Signal quality' >> 0.439 
+[20:55:27.935][S][sensor]: 'Revolutions' >> -0.007 
+[20:55:27.935][S][sensor]: 'Reverse flow' >> 520.012 L
+[20:55:27.935][S][sensor]: 'LDC Channel 2 Raw' >> 118 

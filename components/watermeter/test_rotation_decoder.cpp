@@ -6,6 +6,7 @@
 
 #include "rotation_decoder.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -201,6 +202,45 @@ void test_accumulator_precision_at_realistic_reading() {
   check(float_error > 100.0, "float accumulator (for comparison) demonstrably loses most of the total here");
 }
 
+// Regression test for a real bug found on hardware, not by any prior test: a meter sitting
+// completely still for an extended period (no real rotation ever) could satisfy the envelope
+// bootstrap's old, too-low threshold from LSB dither alone, lock in a calibration ~30-50x smaller
+// than the true signal amplitude, and then report wild phantom rotation from that same dither --
+// `Signal quality` reading 0.667 and `Revolutions` jumping by -0.5/+0.167 rev with raw channel
+// codes barely moving at all (captures/log3.txt from the field). Neither existing capture
+// exercises "sits at rest indefinitely, never rotates even once" -- both eventually show real
+// motion -- so this synthesizes exactly that: pure +-1 code dither, symmetric, no net drift,
+// matching the measured diff histogram from TODO.md Phase B (ch0: 189 down / 190 up).
+void test_no_phantom_rotation_from_pure_dither() {
+  watermeter_core::RotationDecoder decoder;
+  const float base[3] = {105.0f, 159.0f, 118.0f};  // realistic gain-8 resting values (log3.txt)
+  double t = 0.0;
+  double max_abs_revs = 0.0;
+  float max_r = 0.0f;
+
+  for (int i = 0; i < 5000; i++) {  // 50s simulated at 100 Hz -- far longer than the bootstrap window
+    // Bounded oscillation around a FIXED center -- toggles between base and base+1, exactly the
+    // shape measured at rest on real hardware (e.g. ch0: 146<->147, TODO.md Phase B). Not a
+    // cumulative random walk: `+=` here would drift unboundedly over 5000 samples and isn't what
+    // real dither does (a first version of this test made exactly that mistake).
+    float raw[3] = {
+        base[0] + (((i * 7) % 5 == 0) ? 1.0f : 0.0f),
+        base[1] + (((i * 11) % 6 == 0) ? 1.0f : 0.0f),
+        base[2] + (((i * 13) % 4 == 0) ? 1.0f : 0.0f),
+    };
+
+    t += 0.01;
+    decoder.update(raw, t);
+
+    max_abs_revs = std::max(max_abs_revs, std::fabs(decoder.revolutions()));
+    max_r = std::max(max_r, decoder.signal_quality());
+  }
+
+  std::printf("      pure dither, 50s: max |revolutions| %.4f, max signal_quality (r) %.3f\n", max_abs_revs, max_r);
+  check(max_abs_revs < 0.02, "pure dither never accumulates meaningful phantom rotation");
+  check(max_r < 0.3, "pure dither never reads a misleadingly high signal quality (stays below r_min)");
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -210,6 +250,7 @@ int main(int argc, char **argv) {
   test_phaseb_gain8_offset(capture_dir);
   test_no_nan_across_full_files(capture_dir);
   test_accumulator_precision_at_realistic_reading();
+  test_no_phantom_rotation_from_pure_dither();
 
   std::printf("\n%d check(s) failed\n", g_failures);
   return g_failures == 0 ? 0 : 1;
