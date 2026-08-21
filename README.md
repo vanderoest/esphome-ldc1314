@@ -130,10 +130,13 @@ binary_sensor:
     name: "LDC Channel 2 Error"
 ```
 
-Errors are also logged (`DEBUG` level for per-conversion errors, `WARNING`/`ERROR` for
-communication failures and setup problems). The `STATUS` register is decoded per-bit, which is
-the only place amplitude-**high** and amplitude-**low** are distinguishable — `DATAx.ERR_AE` ORs
-the two together.
+Errors are also logged at `DEBUG` level, rate-limited to one line per error-state transition plus
+a periodic per-channel error count every 10s — not one line per errored conversion, which at a
+100 Hz `update_interval` with a persistently-erroring channel would otherwise be hundreds of lines
+a second. Communication failures and setup problems log at `WARNING`/`ERROR` and are not
+rate-limited. `STATUS` is read on its own 1s cadence independent of `update_interval` (it's
+diagnostic-only and read-to-clear) and decoded per-bit, which is the only place amplitude-**high**
+and amplitude-**low** are distinguishable — `DATAx.ERR_AE` ORs the two together.
 
 ### Error flags do not suppress measurements
 
@@ -194,6 +197,29 @@ frequency-dependent checks are skipped in that case. The `DATA < 1024` and `Q ma
 It is a snapshot of whatever the target is doing when you press the button. That is exact for the
 configuration checks — they depend on the sensor frequency, not the target position — but the
 amplitude-error line reflects one instant.
+
+### Raw trace capture
+
+Add the `switch:` platform to get an on/off toggle for a `TRACE,<ts>,<ch0>,<ch1>,<ch2>` log line
+(one per `update()` cycle, over whichever channels are active):
+
+```yaml
+switch:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    name: "LDC trace capture"
+```
+
+Flip it on before a capture session and off after — no reflash either direction, and unlike
+raising the global `logger:` level it doesn't pull in every other component's logging. It logs at
+`DEBUG`, so `logger: level: DEBUG` (the default) is enough; a capture is then just
+
+```bash
+esphome logs your-config.yaml | grep -oE 'TRACE,.*' | tee trace.csv
+```
+
+The switch defaults to off and does not restore across a reboot (`restore_mode: ALWAYS_OFF`) — a
+capture session is something you start deliberately each time.
 
 ## Tuning per-channel settings
 

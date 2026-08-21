@@ -92,6 +92,12 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   void set_sensor_activation_mode(SensorActivationMode mode) { this->sensor_activation_mode_ = mode; }
   void set_report_errors_on_intb(bool enabled) { this->report_errors_on_intb_ = enabled; }
 
+  // Runtime toggle for the TRACE,<ts>,<ch0>,<ch1>,<ch2> log line (see log_trace_()), driven by the
+  // `switch:` platform. Deliberately not gated by log verbosity: a capture session needs no
+  // reflash this way, and doesn't drag every other component's logging along with it the way
+  // `logger: level: VERY_VERBOSE` would.
+  void set_trace_enabled(bool enabled) { this->trace_enabled_ = enabled; }
+
   // Per-channel configuration and entity registration -- set from sensor.py/binary_sensor.py
   // before setup() runs. `channel` is 0-based and must be < MAX_CHANNELS.
   void set_channel_sensor(uint8_t channel, sensor::Sensor *sensor) { this->channels_[channel].sensor = sensor; }
@@ -200,6 +206,8 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   bool channel_error_state_[MAX_CHANNELS]{};
   uint32_t channel_error_count_[MAX_CHANNELS]{};
   uint32_t last_error_summary_ms_{0};
+
+  bool trace_enabled_{false};
 };
 
 }  // namespace ldc1314

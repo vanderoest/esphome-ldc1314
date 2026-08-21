@@ -410,15 +410,19 @@ void LDC1314Component::maybe_log_error_summary_(uint32_t now) {
 }
 
 void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) const {
+  // Gated by the `switch:` platform (set_trace_enabled()), not by log verbosity: at 100 Hz this
+  // is a 100 lines/s flood with no state-transition to gate on -- every cycle is meant to be
+  // logged during a capture -- so it can't reuse the error-summary approach above. Raising
+  // `logger:` to VERY_VERBOSE to unlock it was tried and rejected: it drags every other
+  // component's logging along with it, and ESPHome won't allow a per-tag `logs:` override more
+  // verbose than the global level to claw that back. A plain runtime flag sidesteps log
+  // verbosity entirely -- flip the switch on, capture, flip it off, no reflash either way.
+  if (!this->trace_enabled_)
+    return;
+
   // One CSV line per update() cycle -- `ts,ch0,ch1,ch2,...` over the active channels -- so a
   // capture session is `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a raw-trace
   // log line"; used by Phase A's offline analysis in `tools/`).
-  //
-  // ESP_LOGVV, not ESP_LOGD: at 100 Hz this is itself a 100 lines/s flood, and unlike the error
-  // logging above there's no state-transition to gate on -- every cycle is meant to be logged
-  // during a capture. VERY_VERBOSE is compiled out entirely under the normal `logger: level:
-  // DEBUG`, so day-to-day operation stays quiet; a capture session needs `level: VERY_VERBOSE`
-  // (optionally scoped with `logs: {ldc1314: VERY_VERBOSE}`) and a reflash.
   std::string line = str_sprintf("TRACE,%u", static_cast<unsigned>(now));
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     if (!this->channels_[channel].active())
@@ -429,7 +433,7 @@ void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) cons
       line += str_sprintf(",%u", raw_values[channel]);
     }
   }
-  ESP_LOGVV(TAG, "%s", line.c_str());
+  ESP_LOGD(TAG, "%s", line.c_str());
 }
 
 void LDC1314Component::read_status_() {
