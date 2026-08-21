@@ -87,6 +87,11 @@ channel on every conversion. An investigation established:
   three channels and leaves it there, with `ERR_ALE` continuously asserted. *(Measured.)* The
   device therefore swept its entire drive range without reaching the 1.2–1.8 V target, so no
   `IDRIVE` value can resolve the flag.
+- **The mechanism, established 2026-08-21:** that bound is `R_P < 655 Ω`, against a family
+  specified for `R_P` = 1 kΩ–100 kΩ (`snaa221b.md` §5). The coil head is below the device's
+  supported floor by ~1.6×, so the device physically cannot develop 1.2 V across it at any drive
+  setting. See `docs/sensor_head.md`. This does not change the decision below — it removes the
+  last reason to revisit it.
 - The coils oscillate at ≈4.9–5.2 MHz, against a configuration inherited from the datasheet's
   §8.2.4 worked example, which targets a 2.4 MHz / 6.6 kΩ coil. *(Measured; frequency derived from
   the DATA ratio and the nominal internal oscillator.)*
@@ -114,3 +119,102 @@ per `CLAUDE.md` lives outside this component.
 **What remains from it:** the on-demand datasheet-conformance report (`button:` platform), which
 is what identified the `DEGLITCH` violation, plus the `STATUS` per-bit decoding and register write
 tracing that made the investigation possible at all.
+
+---
+
+## The watermeter is a second component, not a feature of the driver
+
+**Decision:** The watermeter lives in `components/watermeter/`, a separate ESPHome external
+component. `components/ldc1314/` stays exactly what it is — a generic driver publishing raw
+conversion codes. The watermeter takes three `sensor:` source IDs as input, not an `ldc1314_id`,
+so it has no compile-time dependency on the driver at all.
+
+**Alternatives considered:**
+- Add volume/flow outputs to the `ldc1314` hub, gated behind an optional `watermeter:` config block.
+- Keep the decoding in consuming YAML (`template` sensors + lambdas), as the previous plan assumed.
+
+**Why:** The project goal changed (a full watermeter is now wanted) but the engineering reason
+behind the old boundary did not: a decoder that assumes "three coils, 120° apart, one litre per
+revolution" encodes one specific mechanical design, and the LDC1314 has no idea that is what its
+channels are for. Splitting into two components gets the new goal without giving that up — the
+driver stays usable for encoder knobs, buttons and proximity work, and the watermeter stays usable
+with any three-phase inductive head, including one read by an LDC1312 or an LDC1614.
+
+The YAML/lambda route was the previous plan and is now rejected on its own merits, not on scope:
+the decoder needs per-sample state (envelope followers, a tracked angle, an accumulator), flash
+persistence, and ~50 evaluations per second. That is a component, however it is spelled. Expressing
+it as lambdas would produce something harder to read, impossible to unit-test, and slower.
+
+Taking `sensor:` sources rather than the hub is what makes the decoder testable at all: three
+`template` sensors replaying a captured trace drive it identically to real hardware.
+
+---
+
+## Clarke transform and a continuously tracked angle, not revolution counting
+
+**Decision:** Volume comes from a continuously accumulated rotor angle: normalise the three
+channels, Clarke-transform them into an α/β vector, take `atan2`, follow that angle through a
+hysteresis band, and accumulate the wrapped delta. Volume is `accumulated_angle / 2π ×
+liters_per_revolution`. Whole-revolution counting is not used at any stage.
+
+**Alternatives considered:**
+- Schmitt-trigger threshold on one channel, counting one litre per crossing pair.
+- Quadrature decoding on two of the three channels.
+- Ellipse/PCA fit of the raw three-channel locus instead of a fixed Clarke matrix.
+- A deadband on the per-sample angle delta instead of a hysteresis band on the angle itself.
+
+**Why:** Threshold counting fails on all three axes that matter for a domestic meter. Its
+resolution is one litre, which is too coarse for a flow rate and far too coarse for leak
+detection. It cannot distinguish forward from reverse, so backflow and mechanical wobble both
+count as consumption. And a rotor that stops with the target parked on the threshold dithers
+across it on noise alone, generating counts from a closed tap — the worst possible failure mode
+for a billing-adjacent number.
+
+The Clarke transform costs about ten floating-point operations per sample and removes all three
+problems at once: continuous angle gives arbitrary sub-revolution resolution, the sign of the
+angle delta gives direction, and the vector magnitude gives a free signal-quality gate that also
+detects a detached coil. It is the standard treatment for a balanced three-phase signal, which is
+what three coils at 120° are.
+
+Quadrature on two channels was rejected for throwing away a third of the available signal and the
+common-mode rejection that comes from summing all three. Ellipse fitting is strictly more general
+and is held in reserve: if the trace capture shows the coils are *not* ~120° apart, Clarke
+degenerates and a fit becomes necessary. Until that is measured, the fixed matrix is the simpler
+thing that is probably right.
+
+The hysteresis-vs-deadband choice is the subtle one. A deadband on `Δθ` (ignore movements smaller
+than ε) gives zero drift at rest, but it systematically discards slow rotation — at low flow every
+individual sample delta is below ε, so the meter reads zero exactly when a leak is what you are
+looking for. A hysteresis band on the angle itself has the same zero drift at rest, because the
+tracked angle simply does not move, while remaining complete at any flow rate: the tracked angle
+lags by at most `h` but always catches up. Correct-but-quantised beats fast-but-lossy for a
+counter that is supposed to be a total.
+
+---
+
+## Sampling rate is a YAML setting, not a new driver feature
+
+**Decision:** The driver keeps its existing `PollingComponent` shape and reads one sample per
+channel per `update_interval`. The watermeter's ~50 Hz requirement is met by setting
+`update_interval: 20ms` and raising the I2C bus to 400 kHz. No burst sampling, no on-device
+accumulation, no INTB/DRDY synchronisation.
+
+**Alternatives considered:**
+- The burst-sampling / between-poll accumulation feature the previous TODO reserved for exactly
+  this case.
+- Synchronise reads to `STATUS.DRDY` so all three channels come from the same scan.
+
+**Why:** The arithmetic says none of it is needed. A domestic meter at overload flow (Q4 ≈
+3.1 m³/h, 1 litre/revolution on this head) turns at ~0.87 rev/s; 50 Hz gives ~57 samples per
+revolution there, against a hardware ceiling of ~360 three-channel scans/s. The requirement uses
+14 % of what the device already produces, through an interface that already exists.
+
+DRDY synchronisation buys even less. A full three-channel scan takes 2.8 ms. Against a revolution
+of roughly one second, a channel occasionally sourced from the adjacent scan contributes about one
+degree of phase error — an order of magnitude below the hysteresis quantum, and it does not
+accumulate.
+
+What 50 Hz *does* break is incidental: `read_channel_()` logs one line per errored conversion, and
+`ERR_ALE` is permanently asserted on this board, so the driver would emit 150 log lines per second.
+That is a logging bug the higher rate exposes, not an argument for a different acquisition
+architecture.
