@@ -141,8 +141,13 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   bool apply_config_();
   uint16_t compose_config_(bool sleep) const;
   bool write_channel_config_(uint8_t channel, uint8_t idrive, uint16_t offset);
-  void read_channel_(uint8_t channel);
+  // Returns the 12-bit result code, or INVALID_RAW_ if the read failed or the conversion is
+  // watchdog-invalid. Rate-limits its own error logging: a line on error-state transition, plus
+  // a periodic summary via maybe_log_error_summary_() -- see that method for why.
+  uint16_t read_channel_(uint8_t channel);
   void read_status_();
+  void maybe_log_error_summary_(uint32_t now);
+  void log_trace_(uint32_t now, const uint16_t *raw_values) const;
   uint8_t active_channel_count_() const;
   uint8_t highest_active_channel_() const;
   static uint8_t output_gain_to_value_(OutputGain gain);
@@ -179,6 +184,22 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   uint16_t last_config_{0};
   uint16_t last_clock_dividers_[MAX_CHANNELS]{};
   uint16_t last_drive_current_[MAX_CHANNELS]{};
+
+  // Sentinel returned by read_channel_() when a sample must not be trusted (I2C failure or
+  // watchdog timeout) -- outside DATA_RESULT_MASK's 12-bit range, so unambiguous.
+  static constexpr uint16_t INVALID_RAW_ = 0xFFFF;
+
+  // STATUS is diagnostic only and costs a full extra I2C transaction; read it on a slow cadence
+  // independent of update_interval rather than every poll (design_decisions.md / .plan Part 1.3).
+  static constexpr uint32_t STATUS_READ_INTERVAL_MS_ = 1000;
+  uint32_t last_status_read_ms_{0};
+
+  // Per-channel error-state logging: a line only on transition, plus a periodic count -- avoids
+  // flooding the log when a channel's error flag is asserted on every conversion (.plan Part 1.2).
+  static constexpr uint32_t ERROR_SUMMARY_INTERVAL_MS_ = 10000;
+  bool channel_error_state_[MAX_CHANNELS]{};
+  uint32_t channel_error_count_[MAX_CHANNELS]{};
+  uint32_t last_error_summary_ms_{0};
 };
 
 }  // namespace ldc1314

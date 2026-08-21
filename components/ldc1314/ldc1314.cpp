@@ -117,16 +117,28 @@ void LDC1314Component::update() {
   // rather than gating reads on STATUS.UNREADCONVx -- worst case with a fast device / slow
   // update_interval is a redundant read of an unchanged value, not corrupted/skipped data.
 
-  // Read STATUS first: it's read-to-clear and, per docs/knowledge_base.md "Error handling", the
-  // driver's read order should be consistent so a second channel's error isn't dropped from
-  // attribution by an out-of-order DATAx read.
-  this->read_status_();
+  uint32_t now = millis();
 
+  // STATUS is read-to-clear diagnostic-only state; at fast update_interval it is not worth a
+  // full extra I2C transaction every cycle, so it runs on its own slow cadence instead
+  // (.plan Part 1.3). When it does fire, it still runs before the DATAx reads below, per
+  // docs/knowledge_base.md "Error handling", so a second channel's error isn't dropped from
+  // attribution by an out-of-order DATAx read.
+  if (now - this->last_status_read_ms_ >= STATUS_READ_INTERVAL_MS_) {
+    this->last_status_read_ms_ = now;
+    this->read_status_();
+  }
+
+  uint16_t raw_values[MAX_CHANNELS];
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
+    raw_values[channel] = INVALID_RAW_;
     if (this->channels_[channel].active()) {
-      this->read_channel_(channel);
+      raw_values[channel] = this->read_channel_(channel);
     }
   }
+
+  this->log_trace_(now, raw_values);
+  this->maybe_log_error_summary_(now);
 }
 
 void LDC1314Component::run_diagnostics() {
@@ -326,7 +338,7 @@ bool LDC1314Component::write_channel_config_(uint8_t channel, uint8_t idrive, ui
   return true;
 }
 
-void LDC1314Component::read_channel_(uint8_t channel) {
+uint16_t LDC1314Component::read_channel_(uint8_t channel) {
   Channel &ch = this->channels_[channel];
   uint16_t raw = 0;
   if (!this->read_channel_raw_(channel, &raw)) {
@@ -336,26 +348,82 @@ void LDC1314Component::read_channel_(uint8_t channel) {
       ch.sensor->publish_state(NAN);
     if (ch.error_binary_sensor != nullptr)
       ch.error_binary_sensor->publish_state(true);
-    return;
+    return INVALID_RAW_;
   }
 
   bool error = (raw & (DATA_ERR_UR | DATA_ERR_OR | DATA_ERR_WD | DATA_ERR_AE)) != 0;
-  if (error) {
-    ESP_LOGD(TAG, "Channel %u: conversion error (DATA=0x%04X: %s%s%s%s)", channel, raw,
-             (raw & DATA_ERR_UR) ? "under-range " : "", (raw & DATA_ERR_OR) ? "over-range " : "",
-             (raw & DATA_ERR_WD) ? "watchdog " : "", (raw & DATA_ERR_AE) ? "amplitude " : "");
+  // Log only on error-state transition, not every errored conversion: ERR_ALE is asserted on
+  // every conversion on this board (design_decisions.md "Persistent amplitude errors are
+  // tolerated, not chased"), so at 100 Hz per-conversion logging is 300 lines/s (.plan Part 1.2).
+  // A running count still accumulates below for the periodic summary.
+  if (error != this->channel_error_state_[channel]) {
+    this->channel_error_state_[channel] = error;
+    if (error) {
+      ESP_LOGD(TAG, "Channel %u: conversion error started (DATA=0x%04X: %s%s%s%s)", channel, raw,
+               (raw & DATA_ERR_UR) ? "under-range " : "", (raw & DATA_ERR_OR) ? "over-range " : "",
+               (raw & DATA_ERR_WD) ? "watchdog " : "", (raw & DATA_ERR_AE) ? "amplitude " : "");
+    } else {
+      ESP_LOGD(TAG, "Channel %u: conversion error cleared", channel);
+    }
   }
+  if (error) {
+    this->channel_error_count_[channel]++;
+  }
+
   if (ch.error_binary_sensor != nullptr)
     ch.error_binary_sensor->publish_state(error);
 
-  if (ch.sensor != nullptr) {
-    // Watchdog-timeout data is explicitly invalid per the datasheet
-    // (docs/summaries/status_monitoring_summary.md) and must not be published as a real reading.
-    // Under-range/over-range/amplitude-warning data is still a valid (if boundary) conversion
-    // result and is published as-is.
-    bool discard = (raw & DATA_ERR_WD) != 0;
+  // Watchdog-timeout data is explicitly invalid per the datasheet
+  // (docs/summaries/status_monitoring_summary.md) and must not be published as a real reading, or
+  // fed into the raw trace as if it were a sample. Under-range/over-range/amplitude-warning data
+  // is still a valid (if boundary) conversion result and is published/traced as-is.
+  bool discard = (raw & DATA_ERR_WD) != 0;
+  if (ch.sensor != nullptr)
     ch.sensor->publish_state(discard ? NAN : static_cast<float>(raw & DATA_RESULT_MASK));
+
+  return discard ? INVALID_RAW_ : (raw & DATA_RESULT_MASK);
+}
+
+void LDC1314Component::maybe_log_error_summary_(uint32_t now) {
+  if (now - this->last_error_summary_ms_ < ERROR_SUMMARY_INTERVAL_MS_)
+    return;
+  uint32_t elapsed_ms = now - this->last_error_summary_ms_;
+  this->last_error_summary_ms_ = now;
+
+  bool any = false;
+  for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
+    if (this->channel_error_count_[channel] > 0)
+      any = true;
   }
+  if (!any)
+    return;
+
+  ESP_LOGD(TAG, "Error summary (last %u ms):", elapsed_ms);
+  for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
+    if (!this->channels_[channel].active())
+      continue;
+    if (this->channel_error_count_[channel] > 0) {
+      ESP_LOGD(TAG, "  Channel %u: %u error(s)", channel, this->channel_error_count_[channel]);
+    }
+    this->channel_error_count_[channel] = 0;
+  }
+}
+
+void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) const {
+  // One CSV line per update() cycle -- `ts,ch0,ch1,ch2,...` over the active channels -- so a
+  // capture session is just `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a
+  // raw-trace log line"; used by Phase A's offline analysis in `tools/`).
+  std::string line = str_sprintf("TRACE,%u", now);
+  for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
+    if (!this->channels_[channel].active())
+      continue;
+    if (raw_values[channel] == INVALID_RAW_) {
+      line += ",NAN";
+    } else {
+      line += str_sprintf(",%u", raw_values[channel]);
+    }
+  }
+  ESP_LOGD(TAG, "%s", line.c_str());
 }
 
 void LDC1314Component::read_status_() {
