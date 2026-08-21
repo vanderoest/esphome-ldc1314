@@ -1,0 +1,111 @@
+esphome:
+  name: watermeter-component-test
+  on_boot:
+    - watermeter.set_total:
+        id: meter
+        value: 12.5
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [ldc1314, watermeter]
+
+i2c:
+  sda: GPIO26
+  scl: GPIO25
+  frequency: 400kHz
+
+ldc1314:
+  - id: ldc
+    address: 0x2A
+    update_interval: 10ms
+    deglitch: 10MHZ
+    output_gain: 8
+
+watermeter:
+  id: meter
+  phases: [coil_0, coil_1, coil_2]
+  liters_per_revolution: 1.0
+  direction: cw
+  reverse: subtract
+  hysteresis: 10deg
+  min_signal: 0.3
+  save_threshold: 1.0
+  save_interval: 60s
+  initial_value: 0
+
+sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    id: coil_0
+    internal: true
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fref_divider: 2
+    idrive: 23
+    offset: 0x397B
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    id: coil_1
+    internal: true
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fref_divider: 2
+    idrive: 23
+    offset: 0x393B
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    id: coil_2
+    internal: true
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fref_divider: 2
+    idrive: 23
+    offset: 0x3BBB
+  - platform: watermeter
+    watermeter_id: meter
+    volume:
+      name: "Water"
+    flow_rate:
+      name: "Water flow"
+    angle:
+      name: "Rotor angle"
+    signal_quality:
+      name: "Signal quality"
+    revolutions:
+      name: "Revolutions"
+    reverse_volume:
+      name: "Reverse flow"
+
+binary_sensor:
+  - platform: watermeter
+    watermeter_id: meter
+    flowing:
+      name: "Water flowing"
+    continuous_flow:
+      name: "Possible leak"
+      min_duration: 30min
+
+button:
+  - platform: watermeter
+    watermeter_id: meter
+    name: "Watermeter learn pass"
+    duration: 10s
+
+switch:
+  # Required so the ldc1314 component directory's switch platform file has switch:/switch.h
+  # available to compile against -- see README "Raw trace capture".
+  - platform: ldc1314
+    ldc1314_id: ldc
+    name: "LDC trace capture"

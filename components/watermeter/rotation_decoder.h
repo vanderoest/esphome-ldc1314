@@ -2,7 +2,12 @@
 
 #include <cstdint>
 
-namespace watermeter {
+// A distinct namespace from esphome::watermeter (the ESPHome wrapper in watermeter.h/.cpp) is
+// deliberate, not incidental: ESPHome's generated main.cpp does `using namespace esphome;`, which
+// makes a plain top-level `namespace watermeter` collide with `esphome::watermeter` and produces
+// "reference to 'watermeter' is ambiguous" the moment both are visible in the same translation
+// unit -- caught building tests/watermeter_component_test.yaml.
+namespace watermeter_core {
 
 // Physical coil order and rotation sense are wiring/geometry facts, not givens
 // (design_decisions.md) -- channel_order maps this decoder's fixed internal phase slots 0/1/2 to
@@ -52,6 +57,11 @@ struct DecoderConfig {
 class RotationDecoder {
  public:
   explicit RotationDecoder(const DecoderConfig &config = DecoderConfig{});
+
+  // Replaces the whole config in one shot. Exists because ESPHome codegen constructs the owning
+  // component with no arguments and applies `set_*()` calls afterward, before setup() runs --
+  // there's no way to pass a fully-populated DecoderConfig to the constructor in that flow.
+  void set_config(const DecoderConfig &config) { this->config_ = config; }
 
   // Feed one sample, raw[3] indexed by the *driver's* channel numbering (this applies
   // config_.channel_order itself). A NaN in any channel is a dropped/invalid sample: state holds
@@ -108,4 +118,4 @@ class RotationDecoder {
   double last_timestamp_s_ = 0;
 };
 
-}  // namespace watermeter
+}  // namespace watermeter_core

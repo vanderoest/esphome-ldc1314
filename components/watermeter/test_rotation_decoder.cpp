@@ -70,7 +70,7 @@ void check(bool cond, const std::string &msg) {
 // (e.g. because the file doesn't cover it) -- callers must check before trusting the deltas.
 bool revolutions_at(const std::vector<Sample> &samples, int t0, int t1, int t2, int t3, double *r0,
                      double *r1, double *r2, double *r3) {
-  watermeter::RotationDecoder decoder;
+  watermeter_core::RotationDecoder decoder;
   bool have0 = false, have1 = false, have2 = false, have3 = false;
   for (const auto &s : samples) {
     decoder.update(s.ch, s.t_s);
@@ -158,7 +158,7 @@ void test_phaseb_gain8_offset(const std::string &capture_dir) {
 void test_no_nan_across_full_files(const std::string &capture_dir) {
   for (const char *name : {"2026-08-21_rest-slow-fast-bucket.csv", "2026-08-21_phaseb-gain8-offset.csv"}) {
     auto samples = load_csv(capture_dir + "/" + name);
-    watermeter::RotationDecoder decoder;
+    watermeter_core::RotationDecoder decoder;
     bool finite = true;
     for (const auto &s : samples) {
       decoder.update(s.ch, s.t_s);
@@ -172,6 +172,35 @@ void test_no_nan_across_full_files(const std::string &capture_dir) {
   }
 }
 
+// TODO.md Phase D: "accumulate in double, never float" -- the failure mode (a float accumulator
+// silently freezing once its ULP exceeds the hysteresis quantum) is invisible on a bench test
+// starting from zero, so it has to be checked at a realistic install reading instead. This is not
+// exercising WatermeterComponent itself (it depends on ESPHome's runtime, not host-testable) --
+// it's checking the specific arithmetic claim design_decisions.md makes, directly.
+void test_accumulator_precision_at_realistic_reading() {
+  constexpr double kIncrementL = 0.02792527;  // 10 deg hysteresis quantum at 1 L/rev (design_decisions.md)
+  constexpr int kIncrements = 100000;         // ~2792 L of simulated flow
+
+  double acc_double = 1200000.0;  // a realistic multi-year install reading
+  float acc_float = 1200000.0f;
+  for (int i = 0; i < kIncrements; i++) {
+    acc_double += kIncrementL;
+    acc_float += static_cast<float>(kIncrementL);
+  }
+
+  double expected = 1200000.0 + kIncrements * kIncrementL;
+  double double_error = std::fabs(acc_double - expected);
+  double float_error = std::fabs(static_cast<double>(acc_float) - expected);
+
+  std::printf("      double accumulator: %.4f (error %.6f L)\n", acc_double, double_error);
+  std::printf("      float accumulator:  %.4f (error %.6f L, for comparison -- not what's shipped)\n",
+              static_cast<double>(acc_float), float_error);
+  check(double_error < 0.01, "double accumulator stays accurate to <0.01 L at a 1.2 M L reading");
+  // This is the failure mode itself, captured as a check: confirms the float column above is
+  // demonstrating the real bug design_decisions.md describes, not a hypothetical one.
+  check(float_error > 100.0, "float accumulator (for comparison) demonstrably loses most of the total here");
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -180,6 +209,7 @@ int main(int argc, char **argv) {
   test_rest_slow_fast_bucket(capture_dir);
   test_phaseb_gain8_offset(capture_dir);
   test_no_nan_across_full_files(capture_dir);
+  test_accumulator_precision_at_realistic_reading();
 
   std::printf("\n%d check(s) failed\n", g_failures);
   return g_failures == 0 ? 0 : 1;

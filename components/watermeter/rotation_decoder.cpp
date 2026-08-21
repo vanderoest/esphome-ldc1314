@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace watermeter {
+namespace watermeter_core {
 
 static constexpr double kTwoPi = 6.28318530717958647692;
 static constexpr double kPi = 3.14159265358979323846;
@@ -186,4 +186,4 @@ void RotationDecoder::set_learned_envelope(const float mid[3], const float amp[3
   this->envelope_filled_ = true;
 }
 
-}  // namespace watermeter
+}  // namespace watermeter_core
