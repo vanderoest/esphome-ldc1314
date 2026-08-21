@@ -2,6 +2,7 @@ import esphome.codegen as cg
 from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
+    DEVICE_CLASS_VOLUME_FLOW_RATE,
     DEVICE_CLASS_WATER,
     ENTITY_CATEGORY_DIAGNOSTIC,
     STATE_CLASS_MEASUREMENT,
@@ -40,9 +41,14 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_WATER,
             state_class=STATE_CLASS_TOTAL,
         ),
+        # device_class: volume_flow_rate, not water -- HA's Energy Dashboard's optional water
+        # flow-rate field validates against this device class specifically (distinct from the
+        # cumulative device_class: water above), which the unset-device_class version of this
+        # sensor was rejected by ("Unexpected device class" on the entity).
         cv.Optional(CONF_FLOW_RATE): sensor.sensor_schema(
             unit_of_measurement=UNIT_LITRE_PER_MINUTE,
             accuracy_decimals=3,
+            device_class=DEVICE_CLASS_VOLUME_FLOW_RATE,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional(CONF_ANGLE): sensor.sensor_schema(
