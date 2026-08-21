@@ -38,9 +38,10 @@ static const char *const TAG = "ldc1314";
 // derived from it as nominal, and why the ratio-based checks are preferred where a choice exists.
 static const double INTERNAL_OSCILLATOR_HZ = 43.4e6;
 
-// §8.1.6, multi-channel: valid fINx is < fREFx/4. DATA is the fIN/fREF ratio scaled by 2^12, so
-// the constraint is exactly this code ceiling.
-static const uint16_t DATA_CLOCK_LIMIT = 1024;
+// §8.1.6, multi-channel: valid fINx is < fREFx/4, i.e. ratio < 0.25. Only equivalent to
+// "DATA < 1024" at gain 1 / offset 0 -- see run_preflight_()'s ratio computation, and .plan Part 1
+// item 5 for why the DATA-only form was wrong the moment gain/offset tuning applies.
+static const double RATIO_CLOCK_LIMIT = 0.25;
 
 static const char *const VERDICT_MET = "MET";
 static const char *const VERDICT_NOT_MET = "NOT MET";
@@ -97,13 +98,19 @@ bool LDC1314Component::run_preflight_(PreflightResult *out) {
     pc.active = true;
     pc.code = raw & DATA_RESULT_MASK;
     pc.amplitude_error = (raw & DATA_ERR_AE) != 0;
-    pc.ratio = static_cast<double>(pc.code) / 4096.0;
+    // General form (register_map.md / datasheet §7.6.14): DATAx = (ratio - OFFSETx/2^16) *
+    // 2^(12+shift). Reduces to code/4096 at gain 1 (shift 0) / offset 0.
+    uint8_t shift = output_gain_shift_(this->output_gain_);
+    pc.ratio = static_cast<double>(pc.code) / static_cast<double>(1u << (12 + shift)) +
+               static_cast<double>(conf.offset) / 65536.0;
     any = true;
 
     if (pc.amplitude_error)
       out->amplitude_clean = false;
     if (pc.code > out->max_code)
       out->max_code = pc.code;
+    if (pc.ratio > out->max_ratio)
+      out->max_ratio = pc.ratio;
 
     uint8_t fin = conf.fin_divider == 0 ? 1 : conf.fin_divider;
     // §7.6.14: SETTLECOUNT 0x0000 and 0x0001 both give tS = 32/fREF, i.e. an effective count of 2.
@@ -129,7 +136,7 @@ bool LDC1314Component::run_preflight_(PreflightResult *out) {
     return false;
 
   out->valid = true;
-  out->data_limit_ok = out->max_code < DATA_CLOCK_LIMIT;
+  out->data_limit_ok = out->max_ratio < RATIO_CLOCK_LIMIT;
   out->deglitch_ok = out->fclk_known && out->deglitch_hz > out->max_fsensor_hz;
   return true;
 }
@@ -146,9 +153,8 @@ std::string LDC1314Component::preflight_suggestion_(const PreflightResult &resul
   }
 
   if (!result.data_limit_ok) {
-    snprintf(buf, sizeof(buf),
-             "Raise fREF (lower fref_divider) until DATA drops below %u -- currently %u.",
-             static_cast<unsigned>(DATA_CLOCK_LIMIT), static_cast<unsigned>(result.max_code));
+    snprintf(buf, sizeof(buf), "Raise fREF (lower fref_divider) until ratio drops below %.2f -- currently %.4f.",
+             RATIO_CLOCK_LIMIT, result.max_ratio);
     return buf;
   }
 
@@ -217,10 +223,9 @@ void LDC1314Component::log_preflight_(const PreflightResult &result) {
     ESP_LOGI(TAG, "           %-44s %s", "needs fCLKIN, which the driver cannot read", VERDICT_NOT_EVALUATED);
   }
 
-  ESP_LOGI(TAG, "   8.1.6   Multi-channel requires fIN < fREF/4, i.e. DATA < 1024.");
-  snprintf(buf, sizeof(buf), "max DATA %u, %d codes of margin (%.1f%%)", static_cast<unsigned>(result.max_code),
-           static_cast<int>(DATA_CLOCK_LIMIT) - static_cast<int>(result.max_code),
-           100.0 * static_cast<double>(result.max_code) / static_cast<double>(DATA_CLOCK_LIMIT));
+  ESP_LOGI(TAG, "   8.1.6   Multi-channel requires fIN < fREF/4, i.e. ratio < %.2f.", RATIO_CLOCK_LIMIT);
+  snprintf(buf, sizeof(buf), "max ratio %.4f, %.4f of margin (%.1f%%)", result.max_ratio,
+           RATIO_CLOCK_LIMIT - result.max_ratio, 100.0 * result.max_ratio / RATIO_CLOCK_LIMIT);
   ESP_LOGI(TAG, "           %-44s %s", buf, result.data_limit_ok ? VERDICT_MET : VERDICT_NOT_MET);
 
   ESP_LOGI(TAG, "   8.1.6   SETTLECOUNT >= Q*fREF/(16*fSENSOR).");

@@ -46,7 +46,8 @@ struct PreflightChannel {
   bool active{false};
   uint16_t code{0};                 // DATAx & DATA_RESULT_MASK
   bool amplitude_error{false};      // DATAx & DATA_ERR_AE
-  double ratio{0};                  // code / 4096 -- exact, independent of oscillator accuracy
+  double ratio{0};                  // code/2^(12+shift) + offset/2^16 -- exact, independent of
+                                     // oscillator accuracy; reduces to code/4096 at gain 1/offset 0
   double fref_hz{0};                // fCLK / FREF_DIVIDER (0 when fCLK is unknown)
   double fsensor_hz{0};             // ratio * fREF * FIN_DIVIDER (0 when fCLK is unknown)
   double q_max{0};                  // highest coil Q this channel's SETTLECOUNT supports
@@ -61,11 +62,13 @@ struct PreflightResult {
   double fclk_hz{0};
   double deglitch_hz{0};
   uint16_t max_code{0};
+  double max_ratio{0};
   double max_fsensor_hz{0};
   double min_q_max{0};
   uint8_t q_binding_channel{0};
   bool deglitch_ok{false};      // §8.1.7: DEGLITCH exceeds the highest active sensor frequency
-  bool data_limit_ok{false};    // §8.1.6: fIN < fREF/4, i.e. DATA < 1024
+  bool data_limit_ok{false};    // §8.1.6: fIN < fREF/4, i.e. ratio < 0.25 (general form; reduces
+                                 // to DATA < 1024 only at gain 1/offset 0)
   bool amplitude_clean{false};  // no DATAx.ERR_AE asserted on any active channel
   PreflightChannel ch[MAX_CHANNELS];
 };
@@ -157,6 +160,9 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   uint8_t active_channel_count_() const;
   uint8_t highest_active_channel_() const;
   static uint8_t output_gain_to_value_(OutputGain gain);
+  // log2(output_gain_to_value_()) -- the `shift` in DATAx = (ratio - OFFSETx/2^16) * 2^(12+shift)
+  // (register_map.md / datasheet §7.6.14). 0/2/3/4 for gain 1/4/8/16.
+  static uint8_t output_gain_shift_(OutputGain gain);
 
   // --- raw I/O helpers ---
   bool read_channel_raw_(uint8_t channel, uint16_t *raw);

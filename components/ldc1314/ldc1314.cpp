@@ -39,6 +39,20 @@ uint8_t LDC1314Component::output_gain_to_value_(OutputGain gain) {
   }
 }
 
+uint8_t LDC1314Component::output_gain_shift_(OutputGain gain) {
+  switch (gain) {
+    case LDC1314_OUTPUT_GAIN_4:
+      return 2;
+    case LDC1314_OUTPUT_GAIN_8:
+      return 3;
+    case LDC1314_OUTPUT_GAIN_16:
+      return 4;
+    case LDC1314_OUTPUT_GAIN_1:
+    default:
+      return 0;
+  }
+}
+
 void LDC1314Component::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
