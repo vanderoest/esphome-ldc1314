@@ -68,6 +68,15 @@ static constexpr uint32_t kDiagnosticsPublishIntervalMs = 1000;
 static constexpr float kAngleChangeThresholdDeg = 1.0f;
 static constexpr float kSignalQualityChangeThreshold = 0.01f;
 
+// volume/revolutions/reverse_volume cadence -- found in code review, round 4: the round-3 design
+// still called publish_volume_() straight from on_phase_sample_() on every accumulator step, which
+// at Q3 (~2.5 m3/h, 1 L/rev, 10 deg hysteresis) can happen ~25 times/s and republished all three
+// sensors -- including the (up to) two that hadn't actually changed -- every time. Capping to 1 Hz
+// here and gating each sensor independently on its own last-*published*-value (see the members'
+// comment in watermeter.h) cuts that back to at most 3 publish_state() calls/s, only for sensors
+// whose value genuinely moved.
+static constexpr uint32_t kAccumulatorPublishIntervalMs = 1000;
+
 void WatermeterComponent::setup() {
   // Codegen calls set_*() after construction but before setup() -- decoder_ was built with a
   // default DecoderConfig at construction time, so the real config has to be applied explicitly
@@ -127,10 +136,10 @@ void WatermeterComponent::setup() {
   this->flow_window_start_l_ = this->measured_l_;
   this->last_increment_ms_ = now;
 
-  // Announce the restored/default state once at boot -- force=true bypasses publish_flow_state_()
-  // and publish_diagnostics_()'s own change/interval gating, which otherwise have nothing to
-  // compare the very first reading against.
-  this->publish_volume_();
+  // Announce the restored/default state once at boot -- force=true bypasses each function's own
+  // interval gating (publish_volume_()'s per-sensor change check still applies, but always passes
+  // here since have_published_accumulators_ starts false).
+  this->publish_volume_(true);
   this->publish_flow_state_(true);
   this->publish_diagnostics_(true);
 
@@ -195,9 +204,10 @@ void WatermeterComponent::loop() {
     }
   }
 
-  // Both self-gate (change-triggered / interval+threshold-gated -- see their own definitions), so
-  // it's cheap and correct to call them unconditionally on every loop() tick rather than
-  // rate-limiting the call site itself.
+  // All three self-gate (interval and/or change-triggered -- see their own definitions), so it's
+  // cheap and correct to call them unconditionally on every loop() tick rather than rate-limiting
+  // the call site itself.
+  this->publish_volume_(false);
   this->publish_flow_state_(false);
   this->publish_diagnostics_(false);
 
@@ -261,23 +271,51 @@ void WatermeterComponent::on_phase_sample_() {
       }
       this->last_increment_ms_ = millis();
       this->have_confirmed_increment_ = true;
-      // Event-driven: publish exactly when the accumulator actually moved, not on a timer (round
-      // 3). publish_flow_state_()'s own edge-trigger will pick up the resulting "flowing" change
-      // on the next loop() tick, a few ms away at most -- not worth duplicating here too.
-      this->publish_volume_();
+      // publish_volume_()/publish_flow_state_() aren't called here -- both self-gate and run from
+      // loop() every tick (a few ms away at most), which at Q3's ~25 accumulator-steps/s is what
+      // keeps this from republishing on every single one of them (round 4: see
+      // kAccumulatorPublishIntervalMs's comment).
     }
   }
 }
 
-// Exact accumulators -- called whenever one of them actually changes (on_phase_sample_()'s real
-// delta_rev != 0 branch, set_total(), and once at boot), never on a timer.
-void WatermeterComponent::publish_volume_() {
-  if (this->volume_sensor_ != nullptr)
-    this->volume_sensor_->publish_state(static_cast<float>(this->install_offset_l_ + this->measured_l_));
-  if (this->revolutions_sensor_ != nullptr)
-    this->revolutions_sensor_->publish_state(static_cast<float>(this->decoder_.revolutions()));
-  if (this->reverse_volume_sensor_ != nullptr)
-    this->reverse_volume_sensor_->publish_state(static_cast<float>(this->reverse_l_));
+// Exact accumulators. Capped to kAccumulatorPublishIntervalMs (force=true, from setup()/
+// set_total(), bypasses only that interval, not the per-sensor change check below) -- called
+// unconditionally from loop() every tick, cheap since the interval check short-circuits almost
+// every call. Each of the three sensors is compared against its own last-*published* float value
+// and skipped if unchanged: forward flow leaves reverse_volume untouched (and vice versa under
+// reverse: ignore), set_total() only ever changes volume, and comparing the float actually about
+// to be published -- not the double accumulator -- means an increment too small to survive the
+// cast at a large install reading correctly produces no publish either (round 4: found in code
+// review that the round-3 design still republished all three on every accumulator step).
+void WatermeterComponent::publish_volume_(bool force) {
+  uint32_t now = millis();
+  if (!force && now - this->last_accumulator_publish_ms_ < kAccumulatorPublishIntervalMs)
+    return;
+  this->last_accumulator_publish_ms_ = now;
+
+  float volume_l = static_cast<float>(this->install_offset_l_ + this->measured_l_);
+  if (!this->have_published_accumulators_ || volume_l != this->last_published_volume_l_) {
+    this->last_published_volume_l_ = volume_l;
+    if (this->volume_sensor_ != nullptr)
+      this->volume_sensor_->publish_state(volume_l);
+  }
+
+  float revolutions = static_cast<float>(this->decoder_.revolutions());
+  if (!this->have_published_accumulators_ || revolutions != this->last_published_revolutions_) {
+    this->last_published_revolutions_ = revolutions;
+    if (this->revolutions_sensor_ != nullptr)
+      this->revolutions_sensor_->publish_state(revolutions);
+  }
+
+  float reverse_l = static_cast<float>(this->reverse_l_);
+  if (!this->have_published_accumulators_ || reverse_l != this->last_published_reverse_l_) {
+    this->last_published_reverse_l_ = reverse_l;
+    if (this->reverse_volume_sensor_ != nullptr)
+      this->reverse_volume_sensor_->publish_state(reverse_l);
+  }
+
+  this->have_published_accumulators_ = true;
 }
 
 // "Flowing" is "a real hysteresis-confirmed step happened within no_flow_timeout_ms_" --
@@ -399,7 +437,9 @@ void WatermeterComponent::save_now_() {
 
 void WatermeterComponent::set_total(double liters) {
   this->install_offset_l_ = liters - this->measured_l_;
-  this->publish_volume_();
+  // force=true only bypasses the interval, not the per-sensor change check -- revolutions/
+  // reverse_volume are untouched by set_total() and correctly won't republish.
+  this->publish_volume_(true);
   // A deliberate, infrequent user action -- worth an immediate save rather than waiting on the
   // flash-wear rate limit that protects against continuous small increments.
   this->save_now_();

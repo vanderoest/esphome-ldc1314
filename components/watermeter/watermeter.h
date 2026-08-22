@@ -95,7 +95,7 @@ class WatermeterComponent : public Component {
   // are event-driven off the accumulator actually changing, while angle/signal_quality are noisy
   // internal diagnostics that get their own slow, threshold-gated cap instead. See each function's
   // definition for its own trigger.
-  void publish_volume_();
+  void publish_volume_(bool force);
   void publish_flow_state_(bool force);
   void publish_diagnostics_(bool force);
   void maybe_save_();
@@ -141,6 +141,21 @@ class WatermeterComponent : public Component {
   double install_offset_l_{0};
   double last_decoder_revolutions_{0};
   bool have_last_decoder_revolutions_{false};
+
+  // publish_volume_() caps volume/revolutions/reverse_volume to kAccumulatorPublishIntervalMs
+  // (watermeter.cpp) and, independently, only calls publish_state() on a sensor whose *published*
+  // float value actually changed -- found in code review, round 4: at Q3 (~2.5 m3/h, 1 L/rev, 10
+  // deg hysteresis) an accumulator step can land ~25 times/s, and the previous event-driven
+  // publish_volume_() republished all three sensors on every single one of those, including the
+  // two that hadn't moved (forward flow leaves reverse_volume untouched and vice versa under
+  // reverse: ignore; set_total() only ever changes volume). Comparing the float actually about to
+  // be published, not the double accumulator, also means a double increment too small to survive
+  // the cast (possible at a large install reading) correctly produces no publish either.
+  float last_published_volume_l_{0};
+  float last_published_revolutions_{0};
+  float last_published_reverse_l_{0};
+  bool have_published_accumulators_{false};
+  uint32_t last_accumulator_publish_ms_{0};
 
   // Persistence, rate-limited by both volume delta and elapsed time -- the time floor is what
   // bounds flash wear (.plan "Storage"): at peak flow the volume delta alone would trigger a
