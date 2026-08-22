@@ -91,7 +91,13 @@ class WatermeterComponent : public Component {
 
  protected:
   void on_phase_sample_();
-  void publish_();
+  // Split from a single monolithic publish_() (found in code review, round 3): normal readings
+  // are event-driven off the accumulator actually changing, while angle/signal_quality are noisy
+  // internal diagnostics that get their own slow, threshold-gated cap instead. See each function's
+  // definition for its own trigger.
+  void publish_volume_();
+  void publish_flow_state_(bool force);
+  void publish_diagnostics_(bool force);
   void maybe_save_();
   void save_now_();
   void update_flow_rate_(uint32_t now_ms);
@@ -157,12 +163,27 @@ class WatermeterComponent : public Component {
   uint32_t last_increment_ms_{0};
   bool flow_rate_is_zero_{true};
   uint32_t no_flow_timeout_ms_{60000};  // overridden by set_no_flow_timeout_s(); see its comment
+  // Gates "flowing"/"continuous_flow" so they can't read true from a mere elapsed-time check
+  // against an artificially-seeded last_increment_ms_ -- setup() has to set last_increment_ms_ to
+  // *some* value before any real sample arrives, and that value being "just now" made both
+  // sensors report flowing for a full no_flow_timeout_ms_ after every boot, even with the meter
+  // sitting still (found in code review, round 2). Only on_phase_sample_()'s real delta_rev != 0
+  // branch sets this true; publish_flow_state_() requires it before considering the elapsed-time
+  // check.
+  bool have_confirmed_increment_{false};
+  // publish_flow_state_() re-derives "flowing" every loop() tick but only calls publish_state()
+  // when it differs from this -- edge-triggered, not polled (found in code review, round 3).
+  bool last_published_flowing_{false};
 
-  // publish_() is throttled to kPublishIntervalMs (watermeter.cpp), not called on every decoded
-  // sample (~71-100 Hz) -- found in code review: that published every diagnostic sensor at
-  // several hundred state-changes/second over the API, well beyond what a dashboard or HA's
-  // recorder needs, for zero benefit (nothing HA-facing needs sub-second resolution here).
-  uint32_t last_publish_ms_{0};
+  // publish_diagnostics_() caps angle/signal_quality to kDiagnosticsPublishIntervalMs and a
+  // minimum-change threshold (watermeter.cpp) -- found in code review, round 3: these are noisy
+  // internal diagnostics with no HA-facing need for sub-second resolution, unlike volume/
+  // revolutions/reverse_volume which are event-driven off the accumulator actually changing
+  // (publish_volume_(), called from on_phase_sample_()'s real delta_rev != 0 branch).
+  uint32_t last_diagnostics_publish_ms_{0};
+  float last_published_angle_deg_{0};
+  float last_published_signal_quality_{0};
+  bool have_published_diagnostics_{false};
 
   // Learn pass: while active, every phase sample is folded into a plain running min/max instead
   // of being decoded, until duration_s elapses -- then the result is handed to the decoder as its
@@ -172,6 +193,15 @@ class WatermeterComponent : public Component {
   float learn_mid_[3]{0, 0, 0};
   float learn_amp_[3]{0, 0, 0};
   bool learn_have_sample_{false};
+
+  // Tracks whether the decoder's envelope was already filled as of the last time we checked, so
+  // on_phase_sample_() can detect the false->true transition (auto-bootstrap completing) and
+  // force an immediate save -- otherwise a freshly-calibrated envelope with no volume moved yet
+  // (bootstrap, or a learn pass run before any real draw) could sit unsaved indefinitely, since
+  // maybe_save_()'s dirty check only looks at measured_l_/reverse_l_ (found in code review,
+  // round 2). Learn-pass completion (loop()) saves explicitly too, since envelope_learned can flip
+  // true without envelope_filled_ changing (it was already filled by bootstrap).
+  bool last_known_envelope_filled_{false};
 };
 
 // `watermeter.set_total` action -- see __init__.py's registration.
