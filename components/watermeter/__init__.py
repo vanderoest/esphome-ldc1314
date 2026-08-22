@@ -30,6 +30,7 @@ CONF_MIN_SIGNAL = "min_signal"
 CONF_SAVE_THRESHOLD = "save_threshold"
 CONF_SAVE_INTERVAL = "save_interval"
 CONF_INITIAL_VALUE = "initial_value"
+CONF_NO_FLOW_TIMEOUT = "no_flow_timeout"
 
 # "cw"/"ccw" don't encode a physically-verified sense here -- rotation sense has to be settled per
 # installation against the actual wiring/geometry (design_decisions.md), which is exactly what
@@ -54,6 +55,16 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_SAVE_THRESHOLD, default=1.0): cv.positive_float,
         cv.Optional(CONF_SAVE_INTERVAL, default="60s"): cv.positive_time_period_seconds,
         cv.Optional(CONF_INITIAL_VALUE, default=0.0): cv.float_,
+        # How long "flowing"/"continuous_flow"/flow_rate keep reporting activity after the last
+        # real increment before deciding flow has stopped. Meter-specific: it needs to be
+        # comfortably longer than the gap between hysteresis-confirmed steps at this meter's own
+        # Q1 (minimum flow), or a genuine slow leak will never be recognized as continuous. Found
+        # in code review: this used to be a short, hardcoded 5s tied to the decoder's own
+        # envelope-protection timing, which broke `continuous_flow`'s `delayed_on: 30min` filter
+        # at low flow (see watermeter.h's set_no_flow_timeout_s()). 60s default is generous
+        # relative to this meter's own ~16.7s inter-step gap at Q3 2.5's Q1 -- tune down for a
+        # more responsive `flowing` indicator, or up for a meter with a lower Q1.
+        cv.Optional(CONF_NO_FLOW_TIMEOUT, default="60s"): cv.positive_time_period_seconds,
     }
 )
 
@@ -73,6 +84,7 @@ async def to_code(config):
     cg.add(var.set_save_threshold_l(config[CONF_SAVE_THRESHOLD]))
     cg.add(var.set_save_interval_s(config[CONF_SAVE_INTERVAL]))
     cg.add(var.set_initial_value_l(config[CONF_INITIAL_VALUE]))
+    cg.add(var.set_no_flow_timeout_s(config[CONF_NO_FLOW_TIMEOUT]))
     # Distinguishes preferences between multiple watermeter: instances on one device -- see
     # watermeter.cpp setup(). Matches esphome's own C++/Python fnv1_hash so the two sides agree.
     cg.add(var.set_name_hash(fnv1_hash(str(config[CONF_ID]))))

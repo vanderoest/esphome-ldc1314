@@ -13,19 +13,41 @@ static const char *const TAG = "watermeter";
 static constexpr float kRadToDeg = 57.29577951308232f;
 
 // Everything persisted through a reboot: the exact measured total, the install-face alignment,
-// and the reverse-flow diagnostic. Plain POD, saved/loaded as raw bytes (esphome/core/preferences.h)
-// -- doubles are fine here, no serialization needed.
+// the reverse-flow diagnostic, and the decoder's own calibration. Plain POD, saved/loaded as raw
+// bytes (esphome/core/preferences.h) -- doubles/floats/bools are all fine here, no serialization
+// needed.
+//
+// envelope_valid/envelope_mid/envelope_amp/envelope_learned were added after code review flagged
+// that the decoder's calibration was RAM-only: every reboot forced a full re-bootstrap, during
+// which nothing accumulates (found to cost ~0.165 revolution in the gain-8 capture alone). Saving
+// it means a restart can trust its calibration immediately instead of waiting to see real motion
+// again. It's snapshotted opportunistically inside the same rate-limited save as everything else
+// (save_now_()) -- being up to save_interval_s_ stale is fine, it only needs to be a good starting
+// point, not byte-exact.
 struct PersistedState {
   double measured_l;
   double install_offset_l;
   double reverse_l;
+  bool envelope_valid;
+  float envelope_mid[3];
+  float envelope_amp[3];
+  bool envelope_learned;
 };
 
-// Flow-rate sliding window and no-increment timeout. Not exposed as YAML config -- .plan's YAML
-// contract doesn't call for tuning these, and 10s/5s are reasonable defaults for a domestic meter
-// where a real draw lasts seconds to minutes; revisit if Phase E's hardware validation disagrees.
-static constexpr uint32_t kFlowWindowMs = 10000;
-static constexpr uint32_t kFlowNoIncrementTimeoutMs = 5000;
+// Flow-rate sliding window. Not exposed as YAML config -- .plan's YAML contract doesn't call for
+// tuning this. Widened from an original 10s: at low flow (this meter's own Q1, ~0.10 L/min, gives
+// one hysteresis-confirmed step only every ~16.7s) a 10s window either catches zero steps (reads
+// 0) or one step's full increment averaged over a partial window (overestimates) -- neither is an
+// accurate rate. 30s gives a window comfortably wider than the expected inter-step gap at low
+// flow, at the cost of somewhat slower responsiveness when a fast draw starts/stops.
+static constexpr uint32_t kFlowWindowMs = 30000;
+
+// publish_() cadence -- found in code review: calling it from every decoded sample (~71-100 Hz)
+// pushed every diagnostic sensor's state over the API several hundred times a second, for no
+// benefit (nothing HA-facing here needs sub-second resolution). 200ms (5 Hz) still feels live on
+// a dashboard while cutting that traffic by an order of magnitude; decode/accumulation itself is
+// untouched and still runs at full rate in on_phase_sample_(), only the publish is throttled.
+static constexpr uint32_t kPublishIntervalMs = 200;
 
 void WatermeterComponent::setup() {
   // Codegen calls set_*() after construction but before setup() -- decoder_ was built with a
@@ -55,15 +77,19 @@ void WatermeterComponent::setup() {
     this->measured_l_ = state.measured_l;
     this->install_offset_l_ = state.install_offset_l;
     this->reverse_l_ = state.reverse_l;
+    if (state.envelope_valid)
+      this->decoder_.restore_envelope(state.envelope_mid, state.envelope_amp, state.envelope_learned);
   } else {
     this->measured_l_ = 0;
     this->install_offset_l_ = this->initial_value_l_;
     this->reverse_l_ = 0;
   }
   this->last_saved_measured_l_ = this->measured_l_;
+  this->last_saved_reverse_l_ = this->reverse_l_;
 
   uint32_t now = millis();
   this->last_save_ms_ = now;
+  this->last_publish_ms_ = now;
   this->flow_window_start_ms_ = now;
   this->flow_window_start_l_ = this->measured_l_;
   this->last_increment_ms_ = now;
@@ -95,7 +121,12 @@ void WatermeterComponent::dump_config() {
 void WatermeterComponent::loop() {
   uint32_t now = millis();
 
-  if (this->learn_active_ && now >= this->learn_end_ms_) {
+  // Wrap-safe comparison (found in code review): `now >= learn_end_ms_` breaks the moment millis()
+  // wraps past learn_end_ms_ (~49.7 days of uptime) -- now becomes a small value again, so a plain
+  // >= would stay false and the learn pass would never end on its own. Casting the difference to
+  // signed is the standard idiom: it's correct across the wrap as long as the actual gap between
+  // now and learn_end_ms_ is under ~24.8 days, true for any sane learn-pass duration.
+  if (this->learn_active_ && static_cast<int32_t>(now - this->learn_end_ms_) >= 0) {
     this->learn_active_ = false;
     if (this->learn_have_sample_) {
       float mid[3], amp[3];
@@ -113,6 +144,11 @@ void WatermeterComponent::loop() {
     } else {
       ESP_LOGW(TAG, "Learn pass ended with no valid samples -- envelope unchanged");
     }
+  }
+
+  if (now - this->last_publish_ms_ >= kPublishIntervalMs) {
+    this->last_publish_ms_ = now;
+    this->publish_();
   }
 
   this->update_flow_rate_(now);
@@ -167,8 +203,8 @@ void WatermeterComponent::on_phase_sample_() {
       this->last_increment_ms_ = millis();
     }
   }
-
-  this->publish_();
+  // publish_() itself is throttled from loop() (kPublishIntervalMs), not called from here on
+  // every decoded sample -- see that constant's comment.
 }
 
 void WatermeterComponent::publish_() {
@@ -182,16 +218,21 @@ void WatermeterComponent::publish_() {
     this->revolutions_sensor_->publish_state(static_cast<float>(this->decoder_.revolutions()));
   if (this->reverse_volume_sensor_ != nullptr)
     this->reverse_volume_sensor_->publish_state(static_cast<float>(this->reverse_l_));
-  // "Flowing" reflects the decoder's own activity gate directly (rotating()), not a derived
-  // volume delta -- that way it still shows real backflow even under reverse: ignore, where
-  // measured_l_ itself wouldn't move. continuous_flow gets the exact same raw signal; it's the
-  // `delayed_on` filter binary_sensor.py attaches to that entity (not any hub-side logic) that
-  // turns it into "moving continuously for at least min_duration".
-  bool rotating = this->decoder_.rotating();
+  // "Flowing" is "a real hysteresis-confirmed step happened within no_flow_timeout_ms_" --
+  // deliberately NOT the decoder's own rotating() (a 2s window tuned for envelope protection, see
+  // its comment in rotation_decoder.h): at this meter's own Q1, confirmed steps land only every
+  // ~16.7s, so gating on rotating() made `flowing` flicker off between every step and meant
+  // `continuous_flow`'s `delayed_on: 30min` filter reset constantly during a genuine slow leak,
+  // never reaching 30 continuous minutes (found in code review). last_increment_ms_ covers real
+  // backflow too even under reverse: ignore, where measured_l_ itself wouldn't move -- it's
+  // stamped on any nonzero delta_rev, forward or backward. continuous_flow gets the exact same
+  // raw signal; it's the `delayed_on` filter binary_sensor.py attaches to that entity (not any
+  // hub-side logic) that turns it into "moving continuously for at least min_duration".
+  bool flowing = (millis() - this->last_increment_ms_) < this->no_flow_timeout_ms_;
   if (this->flowing_binary_sensor_ != nullptr)
-    this->flowing_binary_sensor_->publish_state(rotating);
+    this->flowing_binary_sensor_->publish_state(flowing);
   if (this->continuous_flow_binary_sensor_ != nullptr)
-    this->continuous_flow_binary_sensor_->publish_state(rotating);
+    this->continuous_flow_binary_sensor_->publish_state(flowing);
 }
 
 void WatermeterComponent::update_flow_rate_(uint32_t now_ms) {
@@ -199,7 +240,7 @@ void WatermeterComponent::update_flow_rate_(uint32_t now_ms) {
   // the sliding window to close, which could otherwise show a stale nonzero rate for seconds
   // after the tap was actually shut (.plan "Outputs": "forced to zero after a no-increment
   // timeout").
-  if (!this->flow_rate_is_zero_ && (now_ms - this->last_increment_ms_) > kFlowNoIncrementTimeoutMs) {
+  if (!this->flow_rate_is_zero_ && (now_ms - this->last_increment_ms_) > this->no_flow_timeout_ms_) {
     if (this->flow_rate_sensor_ != nullptr)
       this->flow_rate_sensor_->publish_state(0.0f);
     this->flow_rate_is_zero_ = true;
@@ -225,15 +266,30 @@ void WatermeterComponent::maybe_save_() {
   uint32_t now = millis();
   if (now - this->last_save_ms_ < this->save_interval_s_ * 1000UL)
     return;
-  if (std::fabs(this->measured_l_ - this->last_saved_measured_l_) < this->save_threshold_l_)
+  // Checking only measured_l_ here missed reverse_l_ moving on its own -- under reverse: ignore,
+  // backflow accumulates into reverse_l_ without ever touching measured_l_, so a save could never
+  // trigger and reverse_l_ would not survive a reboot (found in code review). Same threshold as
+  // measured_l_: the same per-step granularity and flash-wear reasoning applies to either one.
+  bool measured_dirty = std::fabs(this->measured_l_ - this->last_saved_measured_l_) >= this->save_threshold_l_;
+  bool reverse_dirty = std::fabs(this->reverse_l_ - this->last_saved_reverse_l_) >= this->save_threshold_l_;
+  if (!measured_dirty && !reverse_dirty)
     return;
   this->save_now_();
 }
 
 void WatermeterComponent::save_now_() {
-  PersistedState state{this->measured_l_, this->install_offset_l_, this->reverse_l_};
+  PersistedState state{};
+  state.measured_l = this->measured_l_;
+  state.install_offset_l = this->install_offset_l_;
+  state.reverse_l = this->reverse_l_;
+  state.envelope_valid = this->decoder_.envelope_filled();
+  if (state.envelope_valid) {
+    this->decoder_.get_envelope(state.envelope_mid, state.envelope_amp);
+    state.envelope_learned = this->decoder_.envelope_learned();
+  }
   this->pref_.save(&state);
   this->last_saved_measured_l_ = this->measured_l_;
+  this->last_saved_reverse_l_ = this->reverse_l_;
   this->last_save_ms_ = millis();
 }
 
@@ -247,7 +303,8 @@ void WatermeterComponent::set_total(double liters) {
 }
 
 void WatermeterComponent::on_shutdown() {
-  if (this->measured_l_ != this->last_saved_measured_l_)
+  // Same reverse_l_ gap as maybe_save_() -- fixed here too, for the same reason.
+  if (this->measured_l_ != this->last_saved_measured_l_ || this->reverse_l_ != this->last_saved_reverse_l_)
     this->save_now_();
 }
 

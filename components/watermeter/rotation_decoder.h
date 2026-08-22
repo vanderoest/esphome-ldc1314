@@ -33,7 +33,17 @@ struct DecoderConfig {
   // r_min signal-quality gate, AND the hysteresis threshold below, so it inherits all of that
   // protection for free instead of needing its own separately-tuned noise ceiling. At this
   // meter's real observed rate, confirmed steps land roughly every 0.25-0.3s during continuous
-  // flow (10 deg hysteresis / ~9-10s per revolution), comfortably inside a 2s window with no gaps.
+  // *fast* flow (10 deg hysteresis / ~9-10s per revolution), comfortably inside a 2s window with
+  // no gaps.
+  //
+  // This is deliberately short, and deliberately NOT what user-facing "is it flowing"/leak
+  // detection should be built on (caught in code review): at this meter's own Q1 (~0.10 L/min),
+  // confirmed steps land only every ~16.7s -- well outside a 2s window -- so anything gated on
+  // rotating() would flicker on for 2s and off for ~15s during a genuine slow leak. That's fine
+  // for THIS field's actual purpose (protecting the envelope from decaying while real flow is
+  // still ongoing, where responsiveness matters more than smoothness) but wrong for flow_rate or
+  // continuous_flow, which WatermeterComponent computes from its own longer, configurable
+  // no_flow_timeout instead of this value -- see watermeter.h.
   float rotating_recent_window_s = 2.0f;
 
   // Signal-quality gate: accumulation (and envelope adaptation, once past the initial fill) is
@@ -88,6 +98,24 @@ class RotationDecoder {
   // follower with per-phase mid/amp captured over one known revolution. Bypasses the initial-fill
   // bootstrap entirely.
   void set_learned_envelope(const float mid[3], const float amp[3]);
+
+  // Persistence support (Phase D): without this, a reboot forgets the calibration and repeats
+  // the whole bootstrap from scratch -- real consumption during that window undercounts (found
+  // in code review, not testing: ~0.165 revolution elapsed before fill in the gain-8 capture
+  // alone). get_envelope()/envelope_filled()/envelope_learned() let the owning component snapshot
+  // the current calibration to flash; restore_envelope() reinstates one on the next boot.
+  // Deliberately distinct from set_learned_envelope(): `learned` here reflects whatever the saved
+  // state actually was, so a restored *auto-bootstrapped* envelope keeps auto-adapting instead of
+  // becoming permanently locked the way an explicit learn pass does.
+  bool envelope_filled() const { return this->envelope_filled_; }
+  bool envelope_learned() const { return this->envelope_learned_; }
+  void get_envelope(float mid[3], float amp[3]) const {
+    for (int i = 0; i < 3; i++) {
+      mid[i] = this->mid_[i];
+      amp[i] = this->amp_[i];
+    }
+  }
+  void restore_envelope(const float mid[3], const float amp[3], bool learned);
 
  private:
   void update_envelope_(const float raw[3], double dt);

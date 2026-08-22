@@ -51,6 +51,14 @@ class WatermeterComponent : public Component {
   void set_save_threshold_l(float l) { this->save_threshold_l_ = l; }
   void set_save_interval_s(uint32_t s) { this->save_interval_s_ = s; }
   void set_initial_value_l(double l) { this->initial_value_l_ = l; }
+  // How long "flowing"/"continuous_flow"/flow_rate keep reporting activity after the last real
+  // increment, before deciding flow has actually stopped. Deliberately NOT the decoder's own
+  // rotating_recent_window_s (2s, tuned for envelope protection) -- at this meter's own Q1
+  // (~0.10 L/min), confirmed hysteresis steps land only every ~16.7s, so a 2s window made
+  // `continuous_flow`'s `delayed_on: 30min` filter reset every ~15s during a genuine slow leak
+  // and never reach 30 continuous minutes (found in code review). Meter/installation-specific --
+  // exposed as config rather than guessed, since Q1 varies by meter.
+  void set_no_flow_timeout_s(uint32_t s) { this->no_flow_timeout_ms_ = s * 1000UL; }
   // Distinguishes preferences between multiple watermeter: instances on one device -- see
   // watermeter.cpp setup() for why the plain component-name hash isn't enough on its own.
   void set_name_hash(uint32_t hash) { this->name_hash_ = hash; }
@@ -64,8 +72,9 @@ class WatermeterComponent : public Component {
   void set_revolutions_sensor(sensor::Sensor *s) { this->revolutions_sensor_ = s; }
   void set_reverse_volume_sensor(sensor::Sensor *s) { this->reverse_volume_sensor_ = s; }
   void set_flowing_binary_sensor(binary_sensor::BinarySensor *s) { this->flowing_binary_sensor_ = s; }
-  // Fed the exact same raw "rotating" boolean as flowing_binary_sensor_ -- the two differ only in
-  // that this entity has a `delayed_on` filter attached (binary_sensor.py's `min_duration`),
+  // Fed the exact same "is flowing" boolean as flowing_binary_sensor_ (see publish_() -- based on
+  // no_flow_timeout_ms_, not the decoder's own short rotating()) -- the two entities differ only
+  // in that this one has a `delayed_on` filter attached (binary_sensor.py's `min_duration`),
   // turning "moving right now" into "has been moving continuously for at least min_duration".
   void set_continuous_flow_binary_sensor(binary_sensor::BinarySensor *s) { this->continuous_flow_binary_sensor_ = s; }
 
@@ -135,16 +144,25 @@ class WatermeterComponent : public Component {
   uint32_t save_interval_s_{60};
   double initial_value_l_{0};
   double last_saved_measured_l_{0};
+  double last_saved_reverse_l_{0};
   uint32_t last_save_ms_{0};
   uint32_t name_hash_{0};
 
   // Flow rate: a sliding window, forced to zero after a no-increment timeout rather than decaying
-  // toward zero slowly once flow actually stops (.plan "Outputs"). Not exposed as YAML config --
-  // see watermeter.cpp for why these particular constants.
+  // toward zero slowly once flow actually stops (.plan "Outputs"). The window itself stays an
+  // internal constant (watermeter.cpp) since .plan doesn't call for tuning it, but the no-flow
+  // timeout is meter-specific (see set_no_flow_timeout_s()) and is exposed as config.
   double flow_window_start_l_{0};
   uint32_t flow_window_start_ms_{0};
   uint32_t last_increment_ms_{0};
   bool flow_rate_is_zero_{true};
+  uint32_t no_flow_timeout_ms_{60000};  // overridden by set_no_flow_timeout_s(); see its comment
+
+  // publish_() is throttled to kPublishIntervalMs (watermeter.cpp), not called on every decoded
+  // sample (~71-100 Hz) -- found in code review: that published every diagnostic sensor at
+  // several hundred state-changes/second over the API, well beyond what a dashboard or HA's
+  // recorder needs, for zero benefit (nothing HA-facing needs sub-second resolution here).
+  uint32_t last_publish_ms_{0};
 
   // Learn pass: while active, every phase sample is folded into a plain running min/max instead
   // of being decoded, until duration_s elapses -- then the result is handed to the decoder as its

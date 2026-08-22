@@ -55,6 +55,9 @@ std::vector<Sample> load_csv(const std::string &path) {
 
 int wall_seconds(int hh, int mm, int ss) { return hh * 3600 + mm * 60 + ss; }
 
+// Not guaranteed by the standard -- rotation_decoder.cpp avoids M_PI for the same reason.
+constexpr double kTwoPi = 6.28318530717958647692;
+
 int g_failures = 0;
 
 void check(bool cond, const std::string &msg) {
@@ -223,6 +226,83 @@ void test_accumulator_precision_at_realistic_reading() {
   check(float_error > 100.0, "float accumulator (for comparison) demonstrably loses most of the total here");
 }
 
+// Found in code review (Codex), not testing: timestamp_s is millis()/1000.0, which hard-resets to
+// ~0 every ~49.7 days. Sweep the decoder through real, confirmed motion (so rotating_ is
+// genuinely true), then feed a sample whose timestamp jumps far backward -- simulating the wrap --
+// and confirm rotating_ drops to false immediately rather than latching true from a bare
+// `elapsed < window` comparison that a large negative elapsed also satisfies.
+void test_rotating_survives_timestamp_wrap() {
+  watermeter_core::RotationDecoder decoder;
+  const float base[3] = {150.0f, 150.0f, 150.0f};
+  const float amp = 40.0f;
+  const double phase_offset[3] = {0.0, kTwoPi / 3.0, 2.0 * kTwoPi / 3.0};
+
+  // ~2 revolutions over 5s -- comfortably fills the bootstrap (amp 40 >> the 5.0-code threshold)
+  // and produces many real hysteresis-confirmed steps well inside the 2s rotating_recent_window_s.
+  double t = 0.0;
+  for (int i = 0; i < 500; i++) {
+    t += 0.01;
+    double theta = t * (2.0 * kTwoPi / 5.0);
+    float raw[3];
+    for (int c = 0; c < 3; c++)
+      raw[c] = base[c] + amp * static_cast<float>(std::cos(theta - phase_offset[c]));
+    decoder.update(raw, t);
+  }
+  check(decoder.rotating(), "wrap test setup: decoder reports rotating after a real sweep");
+
+  // One more sample, same position (no new motion), timestamp still advancing normally --
+  // rotating_ should still read true here, well inside the window.
+  float raw_last[3];
+  for (int c = 0; c < 3; c++)
+    raw_last[c] = base[c] + amp * static_cast<float>(std::cos(t * (2.0 * kTwoPi / 5.0) - phase_offset[c]));
+  decoder.update(raw_last, t + 0.01);
+  check(decoder.rotating(), "wrap test setup: still rotating one sample later, no wrap yet");
+
+  // Simulate the millis() wrap: same raw values (no real motion), but timestamp collapses back
+  // near zero instead of continuing to advance.
+  decoder.update(raw_last, 0.001);
+  check(!decoder.rotating(), "rotating_ drops to false immediately after a timestamp wrap, not stuck true");
+}
+
+// Envelope persistence (Phase D, code review): get_envelope()/restore_envelope() round-trip. A
+// freshly-constructed decoder fed a restored envelope should behave as already-calibrated --
+// no bootstrap needed -- and preserve the learned/auto-adapting distinction.
+void test_envelope_persistence_round_trip() {
+  watermeter_core::RotationDecoder original;
+  const float base[3] = {150.0f, 150.0f, 150.0f};
+  const float amp = 40.0f;
+  const double phase_offset[3] = {0.0, kTwoPi / 3.0, 2.0 * kTwoPi / 3.0};
+  double t = 0.0;
+  for (int i = 0; i < 300; i++) {
+    t += 0.01;
+    double theta = t * (2.0 * kTwoPi / 5.0);
+    float raw[3];
+    for (int c = 0; c < 3; c++)
+      raw[c] = base[c] + amp * static_cast<float>(std::cos(theta - phase_offset[c]));
+    original.update(raw, t);
+  }
+  check(original.envelope_filled(), "persistence setup: original decoder's envelope is filled");
+  check(!original.envelope_learned(), "persistence setup: filled by auto-bootstrap, not a learn pass");
+
+  float saved_mid[3], saved_amp[3];
+  original.get_envelope(saved_mid, saved_amp);
+
+  watermeter_core::RotationDecoder restored;
+  check(!restored.envelope_filled(), "a fresh decoder starts unfilled");
+  restored.restore_envelope(saved_mid, saved_amp, original.envelope_learned());
+  check(restored.envelope_filled(), "restore_envelope() marks the envelope filled immediately");
+  check(!restored.envelope_learned(), "restoring an auto-bootstrapped envelope keeps it auto-adapting, not locked");
+
+  // A single sample right at a known position should decode to a sane, calibrated r immediately
+  // -- no multi-sample bootstrap needed, unlike a cold decoder which would read r=0 here.
+  float raw[3];
+  for (int c = 0; c < 3; c++)
+    raw[c] = base[c] + amp * static_cast<float>(std::cos(0.0 - phase_offset[c]));
+  restored.update(raw, 1000.0);
+  std::printf("      restored decoder's first-sample signal_quality: %.3f\n", restored.signal_quality());
+  check(restored.signal_quality() > 0.5f, "restored decoder trusts its envelope on the very first sample");
+}
+
 // Regression test for a real bug found on hardware, not by any prior test: a meter sitting
 // completely still for an extended period (no real rotation ever) could satisfy the envelope
 // bootstrap's old, too-low threshold from LSB dither alone, lock in a calibration ~30-50x smaller
@@ -272,6 +352,8 @@ int main(int argc, char **argv) {
   test_no_nan_across_full_files(capture_dir);
   test_accumulator_precision_at_realistic_reading();
   test_no_phantom_rotation_from_pure_dither();
+  test_rotating_survives_timestamp_wrap();
+  test_envelope_persistence_round_trip();
 
   std::printf("\n%d check(s) failed\n", g_failures);
   return g_failures == 0 ? 0 : 1;

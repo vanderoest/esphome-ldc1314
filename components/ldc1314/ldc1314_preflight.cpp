@@ -224,8 +224,11 @@ void LDC1314Component::log_preflight_(const PreflightResult &result) {
   }
 
   ESP_LOGI(TAG, "   8.1.6   Multi-channel requires fIN < fREF/4, i.e. ratio < %.2f.", RATIO_CLOCK_LIMIT);
+  // Found in code review: this printed 100*max_ratio/limit labeled as "margin" -- that's
+  // utilization, not margin (at ratio 0.2395 vs limit 0.25 it printed "95.8% margin" when the
+  // real headroom is 4.2%). Margin is how much of the limit is NOT used, i.e. the complement.
   snprintf(buf, sizeof(buf), "max ratio %.4f, %.4f of margin (%.1f%%)", result.max_ratio,
-           RATIO_CLOCK_LIMIT - result.max_ratio, 100.0 * result.max_ratio / RATIO_CLOCK_LIMIT);
+           RATIO_CLOCK_LIMIT - result.max_ratio, 100.0 * (RATIO_CLOCK_LIMIT - result.max_ratio) / RATIO_CLOCK_LIMIT);
   ESP_LOGI(TAG, "           %-44s %s", buf, result.data_limit_ok ? VERDICT_MET : VERDICT_NOT_MET);
 
   ESP_LOGI(TAG, "   8.1.6   SETTLECOUNT >= Q*fREF/(16*fSENSOR).");

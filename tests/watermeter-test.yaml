@@ -1,0 +1,116 @@
+esphome:
+  name: ldc1314-test
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+
+logger:
+  level: DEBUG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Watermeter_Fallback"
+    password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+web_server:
+  port: 80
+  auth:
+    type: digest
+    username: !secret web_username
+    password: !secret web_password
+  version: 3
+
+
+external_components:
+  - source: github://vanderoest/esphome-ldc1314
+    components: [ldc1314]
+    refresh: 0s
+
+i2c:
+  sda: GPIO26
+  scl: GPIO25
+  frequency: 400kHz         # 50 kHz cannot sustain 100 Hz -- see .plan Part 1.4
+
+ldc1314:
+  - id: ldc
+    address: 0x2A
+    update_interval: 10ms   # 100 Hz -- see .plan Part 1.1 (Phase A trace capture)
+    reference_clock: internal
+    deglitch: 10MHZ
+    output_gain: 8            # Phase B register tuning -- see TODO.md; per-channel offset below
+                               # is fitted just under each channel's own measured minimum ratio
+    high_current_drive: false
+    sensor_activation_mode: FULL_CURRENT
+    report_errors_on_intb: false
+
+sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Raw"
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 23
+    offset: 0x397B             # ratio_lo 0.2275 minus ~0.003 margin, from full-capture min/max
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Raw"
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 23
+    offset: 0x393B             # ratio_lo 0.2266 minus ~0.003 margin
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Raw"
+    rcount: 0x04D6
+    settlecount: 0x0020
+    fin_divider: 1
+    fref_divider: 2
+    idrive: 23
+    offset: 0x3BBB             # ratio_lo 0.2363 minus ~0.003 margin
+
+button:
+  # On-demand datasheet-conformance report -- see README "Datasheet conformance report".
+  - platform: ldc1314
+    ldc1314_id: ldc
+    name: "LDC diagnostics"
+
+switch:
+  # Toggle the TRACE,ts,ch0,ch1,ch2 log line for a capture session -- no reflash needed either
+  # direction. See README "Raw trace capture".
+  - platform: ldc1314
+    ldc1314_id: ldc
+    name: "LDC trace capture"
+
+binary_sensor:
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 0
+    name: "LDC Channel 0 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 1
+    name: "LDC Channel 1 Error"
+  - platform: ldc1314
+    ldc1314_id: ldc
+    channel: 2
+    name: "LDC Channel 2 Error"

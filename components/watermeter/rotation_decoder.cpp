@@ -112,8 +112,17 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
   // this call necessarily runs before this sample's own theta/accumulation is known, and lagging
   // by one sample is immaterial at the 100 Hz design rate. See rotating_recent_window_s's comment
   // in the header for why this is derived from confirmed accumulation rather than raw noise.
-  this->rotating_ = this->have_motion_timestamp_ &&
-                     (timestamp_s - this->last_motion_timestamp_s_) < this->config_.rotating_recent_window_s;
+  //
+  // Caught in code review, not testing: timestamp_s is millis()/1000.0, which hard-resets to ~0
+  // every ~49.7 days. Right after that wrap, `elapsed` below goes deeply negative, and a bare
+  // `elapsed < window` is true for any sufficiently negative number too -- rotating_ would latch
+  // true and stay true until the next real motion, silently reopening the envelope to decay from
+  // dither in the meantime. Requiring elapsed >= 0 as well closes that -- a negative elapsed only
+  // ever means a clock discontinuity, never real recency, so treating it as "not recent" is safe
+  // in every case, matching the dt<0 guard just above for the same underlying reason.
+  double elapsed_since_motion = timestamp_s - this->last_motion_timestamp_s_;
+  this->rotating_ =
+      this->have_motion_timestamp_ && elapsed_since_motion >= 0 && elapsed_since_motion < this->config_.rotating_recent_window_s;
   this->update_envelope_(ordered, dt);
 
   float x[3];
@@ -199,6 +208,15 @@ void RotationDecoder::set_learned_envelope(const float mid[3], const float amp[3
   }
   this->envelope_learned_ = true;
   this->envelope_filled_ = true;
+}
+
+void RotationDecoder::restore_envelope(const float mid[3], const float amp[3], bool learned) {
+  for (int i = 0; i < 3; i++) {
+    this->mid_[i] = mid[i];
+    this->amp_[i] = (amp[i] > 1e-6f) ? amp[i] : 1e-6f;
+  }
+  this->envelope_filled_ = true;
+  this->envelope_learned_ = learned;
 }
 
 }  // namespace watermeter_core
