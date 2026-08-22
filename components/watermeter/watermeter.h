@@ -116,7 +116,8 @@ class WatermeterComponent : public Component {
   bool phase_fresh_[3]{false, false, false};
 
   // Output entities -- all optional, set from sensor.py/binary_sensor.py. A nullptr here just
-  // means publish_()/update_flow_rate_() skip that one.
+  // means publish_volume_()/publish_flow_state_()/publish_diagnostics_()/update_flow_rate_() skip
+  // that one.
   sensor::Sensor *volume_sensor_{nullptr};
   sensor::Sensor *flow_rate_sensor_{nullptr};
   sensor::Sensor *angle_sensor_{nullptr};
@@ -193,8 +194,8 @@ class WatermeterComponent : public Component {
   // publish_diagnostics_() caps angle/signal_quality to kDiagnosticsPublishIntervalMs and a
   // minimum-change threshold (watermeter.cpp) -- found in code review, round 3: these are noisy
   // internal diagnostics with no HA-facing need for sub-second resolution, unlike volume/
-  // revolutions/reverse_volume which are event-driven off the accumulator actually changing
-  // (publish_volume_(), called from on_phase_sample_()'s real delta_rev != 0 branch).
+  // revolutions/reverse_volume, which get their own 1Hz cap plus an independent per-sensor
+  // last-published-value check in publish_volume_() (round 4; see that member's own comment).
   uint32_t last_diagnostics_publish_ms_{0};
   float last_published_angle_deg_{0};
   float last_published_signal_quality_{0};
