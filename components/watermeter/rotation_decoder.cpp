@@ -208,6 +208,14 @@ void RotationDecoder::set_learned_envelope(const float mid[3], const float amp[3
   }
   this->envelope_learned_ = true;
   this->envelope_filled_ = true;
+  // Re-anchor the hysteresis tracker: theta_c_ was computed under the OLD mid_/amp_, and the
+  // component doesn't feed the decoder at all while a learn pass runs (WatermeterComponent::
+  // on_phase_sample_() returns early), so theta_c_ is frozen at the pre-learn rotor position on
+  // top of that. Swapping the envelope moves theta discontinuously; keeping the stale anchor
+  // would make the very first post-learn sample see a delta of up to +-pi and book it as real
+  // rotation -- up to +-0.5 rev = +-0.5 L of phantom volume, exactly when the operator stops
+  // watching. Same reasoning as the uncalibrated case in update(): wait, then anchor fresh.
+  this->have_theta_c_ = false;
 }
 
 void RotationDecoder::restore_envelope(const float mid[3], const float amp[3], bool learned) {

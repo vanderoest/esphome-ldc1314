@@ -12,6 +12,15 @@ layout and are out of scope entirely for now — see `design_decisions.md` for t
 Register-level background: `register_map.md` and `docs/knowledge_base.md`. This README only
 covers using the component — it does not repeat register documentation.
 
+## Configurations in this repository
+
+| File | What it is |
+| --- | --- |
+| `watermeter.yaml` | **The production config** — the actual watermeter device: driver at 100 Hz, `watermeter:` decoding, tuned per-channel offsets. This is the one that gets flashed. |
+| `tests/watermeter-test.yaml` | Bring-up / capture config: raw channels only, no decoding, used with the TRACE switch to record traces. |
+| `tests/watermeter_component_test.yaml` | Minimal both-components config, kept for validating that the YAML schemas still codegen. |
+| `tests/test_ldc1314*.yaml` | Driver-only schema checks. |
+
 ## Installing
 
 Reference this repository directly as an external component:

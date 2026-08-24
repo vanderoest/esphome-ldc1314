@@ -218,3 +218,34 @@ What 50 Hz *does* break is incidental: `read_channel_()` logs one line per error
 `ERR_ALE` is permanently asserted on this board, so the driver would emit 150 log lines per second.
 That is a logging bug the higher rate exposes, not an argument for a different acquisition
 architecture.
+
+## Acquisition rate and Home Assistant publish rate are separate concerns
+
+**Decision:** `update_interval` sets the *acquisition* rate and is deliberately fast (10 ms /
+100 Hz for the watermeter). Nothing published to Home Assistant runs at that rate. Every
+HA-facing entity is capped at 5 Hz or slower, and the driver never emits a state or a log line it
+has already emitted.
+
+This is enforced in three different places, because there are three different kinds of consumer:
+
+- **The decoder** reads the raw channel sensors at the full 100 Hz -- that's the point of the fast
+  poll. Those sensors are therefore `internal: true` in `watermeter.yaml`: they exist to feed
+  `watermeter:`, and Home Assistant never sees them at all.
+- **Dashboard views of the raw channels** are separate `copy` entities with
+  `send_every: 20` (100 Hz / 20 = 5 Hz), or, in a driver-only config with no `watermeter:` block to
+  feed, a `throttle: 200ms` filter on the source sensor itself. Both are stock ESPHome filters --
+  no component-side rate limiting was added for this.
+- **The driver's own publishes** (`read_channel_()`) skip repeats that carry no information: a
+  second consecutive NAN, or an unchanged error-flag state. ESPHome binary sensors don't dedupe
+  themselves, so without this an idle error flag was 100 identical states/s/channel.
+
+**Why:** The rate that makes the *measurement* work is not the rate that makes the *entity* useful.
+100 Hz is genuinely needed to resolve the rotor; nothing on a dashboard or in a recorder database
+benefits from sub-200 ms resolution of a coil's raw code, and pushing it there costs API bandwidth,
+recorder writes and log volume for no gain. The watermeter's own sensors already follow this rule
+from the other direction (accumulators publish on change, diagnostics capped to 1 Hz -- see
+TODO.md Phase D, rounds 3 and 4); this is the same rule applied to the driver's side.
+
+The same reasoning applies to logging, and the section above already noted it as an open bug: an
+error condition that persists must log on transition, never per poll. Both remaining unthrottled
+paths (the I2C read-failure warning, and the NAN publish behind it) were closed for this reason.

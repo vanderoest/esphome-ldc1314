@@ -57,10 +57,17 @@ ldc1314:
     report_errors_on_intb: false
 
 sensor:
+  # Capture/bring-up config: the raw channels ARE the entities here (there's no watermeter: block
+  # to feed them), so unlike watermeter.yaml they can't simply be `internal:`. They still must not
+  # reach Home Assistant at the 100 Hz acquisition rate -- `throttle` drops the surplus states
+  # before they hit the API, holding these to the project's 5 Hz ceiling. The TRACE line used for
+  # actual captures is emitted by the component itself and is unaffected by this filter.
   - platform: ldc1314
     ldc1314_id: ldc
     channel: 0
     name: "LDC Channel 0 Raw"
+    filters:
+      - throttle: 200ms       # 5 Hz to Home Assistant, not the 100 Hz acquisition rate
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1
@@ -71,6 +78,8 @@ sensor:
     ldc1314_id: ldc
     channel: 1
     name: "LDC Channel 1 Raw"
+    filters:
+      - throttle: 200ms       # 5 Hz to Home Assistant, not the 100 Hz acquisition rate
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1
@@ -81,6 +90,8 @@ sensor:
     ldc1314_id: ldc
     channel: 2
     name: "LDC Channel 2 Raw"
+    filters:
+      - throttle: 200ms       # 5 Hz to Home Assistant, not the 100 Hz acquisition rate
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1

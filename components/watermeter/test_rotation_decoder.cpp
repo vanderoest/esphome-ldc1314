@@ -344,6 +344,71 @@ void test_no_phantom_rotation_from_pure_dither() {
 
 }  // namespace
 
+// Regression test for a bug none of the four review rounds caught: a learn pass swaps the whole
+// envelope out from under the hysteresis tracker, but theta_c_ kept its old anchor.
+// WatermeterComponent::on_phase_sample_() returns early for the entire duration of a learn pass,
+// so the decoder never sees the rotation happening while the operator runs water through the
+// meter -- theta_c_ freezes at the pre-learn position, computed against the pre-learn mid_/amp_.
+// set_learned_envelope() then changes the normalisation discontinuously, so the next theta lands
+// somewhere unrelated to that stale anchor, and the whole difference gets booked as real
+// rotation: up to +-0.5 rev = +-0.5 L of phantom volume the moment the learn pass ends.
+void test_learn_pass_reanchors_tracker() {
+  watermeter_core::RotationDecoder decoder;
+  const float base[3] = {150.0f, 150.0f, 150.0f};
+  const float amp = 40.0f;
+  const double phase_offset[3] = {0.0, kTwoPi / 3.0, 2.0 * kTwoPi / 3.0};
+
+  // Bootstrap the decoder normally on a rotating signal, so it ends up calibrated with a real
+  // theta_c_ anchor -- the state a meter is in when the operator presses "start learn pass".
+  double t = 0.0;
+  for (int i = 0; i < 300; i++) {
+    t += 0.01;
+    double theta = t * (2.0 * kTwoPi / 5.0);
+    float raw[3];
+    for (int c = 0; c < 3; c++)
+      raw[c] = base[c] + amp * static_cast<float>(std::cos(theta - phase_offset[c]));
+    decoder.update(raw, t);
+  }
+  check(decoder.envelope_filled(), "learn re-anchor setup: decoder is calibrated before the learn pass");
+  double revs_before = decoder.revolutions();
+
+  // The learn pass itself: the rotor keeps turning (water is running -- that's the whole point of
+  // a learn pass) but the decoder is deliberately NOT fed, exactly as the component behaves.
+  // Meanwhile the learn window observes a per-channel envelope that differs from the bootstrapped
+  // one -- a differential mid shift of +-20 codes, which is what a real coil/gain asymmetry looks
+  // like and precisely what makes the post-swap theta jump.
+  const float learned_mid[3] = {base[0] + 20.0f, base[1] - 20.0f, base[2] + 5.0f};
+  const float learned_amp[3] = {amp * 1.1f, amp * 0.9f, amp * 1.05f};
+  decoder.set_learned_envelope(learned_mid, learned_amp);
+
+  // First sample after the pass ends, at a rotor position half a turn from where the decoder last
+  // saw it (the rotor moved while nobody was looking).
+  double theta_after = t * (2.0 * kTwoPi / 5.0) + kTwoPi / 2.0;
+  float raw[3];
+  for (int c = 0; c < 3; c++)
+    raw[c] = learned_mid[c] + learned_amp[c] * static_cast<float>(std::cos(theta_after - phase_offset[c]));
+  decoder.update(raw, t + 30.0);
+
+  double jump = std::fabs(decoder.revolutions() - revs_before);
+  std::printf("      revolutions booked on the first sample after a learn pass: %.4f\n", jump);
+  check(jump < 0.01, "a learn pass books no phantom revolutions -- the tracker re-anchors instead");
+
+  // And it must still track normally afterwards: keep rotating forward under the new envelope and
+  // confirm the accumulator follows, i.e. the re-anchor didn't wedge the tracker off.
+  double t2 = t + 30.0;
+  for (int i = 0; i < 300; i++) {
+    t2 += 0.01;
+    double theta = theta_after + (t2 - (t + 30.0)) * (2.0 * kTwoPi / 5.0);
+    for (int c = 0; c < 3; c++)
+      raw[c] = learned_mid[c] + learned_amp[c] * static_cast<float>(std::cos(theta - phase_offset[c]));
+    decoder.update(raw, t2);
+  }
+  double revs_after_rotation = decoder.revolutions() - revs_before;
+  std::printf("      revolutions after 3s of real post-learn rotation: %.4f (expect ~1.2)\n", revs_after_rotation);
+  check(revs_after_rotation > 1.05 && revs_after_rotation < 1.25,
+        "the decoder still accumulates real rotation normally after re-anchoring");
+}
+
 int main(int argc, char **argv) {
   std::string capture_dir = argc > 1 ? argv[1] : "../../captures";
 
@@ -354,6 +419,7 @@ int main(int argc, char **argv) {
   test_no_phantom_rotation_from_pure_dither();
   test_rotating_survives_timestamp_wrap();
   test_envelope_persistence_round_trip();
+  test_learn_pass_reanchors_tracker();
 
   std::printf("\n%d check(s) failed\n", g_failures);
   return g_failures == 0 ? 0 : 1;

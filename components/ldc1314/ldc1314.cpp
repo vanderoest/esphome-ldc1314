@@ -352,17 +352,53 @@ bool LDC1314Component::write_channel_config_(uint8_t channel, uint8_t idrive, ui
   return true;
 }
 
-uint16_t LDC1314Component::read_channel_(uint8_t channel) {
+void LDC1314Component::publish_channel_value_(uint8_t channel, float value) {
   Channel &ch = this->channels_[channel];
+  if (ch.sensor == nullptr)
+    return;
+  bool is_nan = std::isnan(value);
+  // A repeated NAN carries no information the consumer doesn't already hold, and at a 10ms
+  // update_interval a dead bus would otherwise push 100 identical NANs/s/channel over the API. A
+  // repeated *valid* reading is the actual measurement and always goes out -- the decoder needs
+  // it at full rate.
+  if (is_nan && this->channel_nan_published_[channel])
+    return;
+  this->channel_nan_published_[channel] = is_nan;
+  ch.sensor->publish_state(value);
+}
+
+void LDC1314Component::publish_channel_error_(uint8_t channel, bool error) {
+  Channel &ch = this->channels_[channel];
+  if (ch.error_binary_sensor == nullptr)
+    return;
+  // ESPHome binary sensors don't dedupe themselves -- publish_state() runs the filter chain and
+  // sends on every call -- so publishing unconditionally here was 100 identical states/s/channel.
+  if (this->channel_error_published_known_[channel] && this->channel_error_published_[channel] == error)
+    return;
+  this->channel_error_published_known_[channel] = true;
+  this->channel_error_published_[channel] = error;
+  ch.error_binary_sensor->publish_state(error);
+}
+
+uint16_t LDC1314Component::read_channel_(uint8_t channel) {
   uint16_t raw = 0;
   if (!this->read_channel_raw_(channel, &raw)) {
-    ESP_LOGW(TAG, "Channel %u: failed to read DATA%u", channel, channel);
+    // Transition-gated for exactly the reason the conversion-error logging below is: a bus that
+    // has gone away fails every poll, which at 10ms is 100 warning lines/s/channel. The recovery
+    // line below is what makes the gate safe to read in a log -- an unmatched "failed" line would
+    // otherwise be indistinguishable from a still-failing channel.
+    if (!this->channel_read_failed_[channel]) {
+      this->channel_read_failed_[channel] = true;
+      ESP_LOGW(TAG, "Channel %u: failed to read DATA%u", channel, channel);
+    }
     this->status_set_warning();
-    if (ch.sensor != nullptr)
-      ch.sensor->publish_state(NAN);
-    if (ch.error_binary_sensor != nullptr)
-      ch.error_binary_sensor->publish_state(true);
+    this->publish_channel_value_(channel, NAN);
+    this->publish_channel_error_(channel, true);
     return INVALID_RAW_;
+  }
+  if (this->channel_read_failed_[channel]) {
+    this->channel_read_failed_[channel] = false;
+    ESP_LOGW(TAG, "Channel %u: DATA%u reads recovered", channel, channel);
   }
 
   bool error = (raw & (DATA_ERR_UR | DATA_ERR_OR | DATA_ERR_WD | DATA_ERR_AE)) != 0;
@@ -384,16 +420,14 @@ uint16_t LDC1314Component::read_channel_(uint8_t channel) {
     this->channel_error_count_[channel]++;
   }
 
-  if (ch.error_binary_sensor != nullptr)
-    ch.error_binary_sensor->publish_state(error);
+  this->publish_channel_error_(channel, error);
 
   // Watchdog-timeout data is explicitly invalid per the datasheet
   // (docs/summaries/status_monitoring_summary.md) and must not be published as a real reading, or
   // fed into the raw trace as if it were a sample. Under-range/over-range/amplitude-warning data
   // is still a valid (if boundary) conversion result and is published/traced as-is.
   bool discard = (raw & DATA_ERR_WD) != 0;
-  if (ch.sensor != nullptr)
-    ch.sensor->publish_state(discard ? NAN : static_cast<float>(raw & DATA_RESULT_MASK));
+  this->publish_channel_value_(channel, discard ? NAN : static_cast<float>(raw & DATA_RESULT_MASK));
 
   return discard ? INVALID_RAW_ : (raw & DATA_RESULT_MASK);
 }

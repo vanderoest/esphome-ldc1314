@@ -154,6 +154,10 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   // watchdog-invalid. Rate-limits its own error logging: a line on error-state transition, plus
   // a periodic summary via maybe_log_error_summary_() -- see that method for why.
   uint16_t read_channel_(uint8_t channel);
+  // Publish helpers that suppress no-information repeats -- see channel_nan_published_ /
+  // channel_error_state_known_ for why.
+  void publish_channel_value_(uint8_t channel, float value);
+  void publish_channel_error_(uint8_t channel, bool error);
   void read_status_();
   void maybe_log_error_summary_(uint32_t now);
   void log_trace_(uint32_t now, const uint16_t *raw_values) const;
@@ -212,6 +216,23 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   bool channel_error_state_[MAX_CHANNELS]{};
   uint32_t channel_error_count_[MAX_CHANNELS]{};
   uint32_t last_error_summary_ms_{0};
+
+  // The same "only on change" rule the error logging above already follows, applied to everything
+  // else read_channel_() emits per poll. At the 10ms update_interval this component is designed
+  // for, an unconditional publish is 100 states/s/channel over the API and 100 log lines/s -- for
+  // a value that isn't changing at all. Found in code review after the error *logging* had
+  // already been rate-limited but the publishes and the I2C-failure warning had not.
+  //
+  // Note the asymmetry: a valid reading is published every poll (that IS the signal, and the
+  // decoder needs it at full rate), but a *repeated* NAN carries no new information -- the
+  // consumer already holds NAN and treats it as invalid.
+  // channel_error_published_ deliberately tracks what the *binary sensor* last sent, separately
+  // from channel_error_state_ above (which tracks conversion errors for the logging): the two
+  // differ, because an I2C read failure publishes an error without being a conversion error.
+  bool channel_error_published_[MAX_CHANNELS]{};
+  bool channel_error_published_known_[MAX_CHANNELS]{};
+  bool channel_nan_published_[MAX_CHANNELS]{};
+  bool channel_read_failed_[MAX_CHANNELS]{};
 
   bool trace_enabled_{false};
 };
