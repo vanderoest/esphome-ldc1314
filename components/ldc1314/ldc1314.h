@@ -234,6 +234,14 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   bool channel_nan_published_[MAX_CHANNELS]{};
   bool channel_read_failed_[MAX_CHANNELS]{};
 
+  // STATUS's error bits are logged only when the *set of asserted bits* changes, not on every
+  // 1 Hz read. On this board the amplitude-low bit is permanently asserted, which was 86k
+  // identical DEBUG lines per day. The ERR_CHAN attribution field is deliberately excluded from
+  // the comparison: it rotates between channels 0/1/2 from read to read, so gating on the whole
+  // register would never suppress anything.
+  uint16_t last_status_error_bits_{0};
+  bool last_status_error_bits_known_{false};
+
   bool trace_enabled_{false};
 };
 

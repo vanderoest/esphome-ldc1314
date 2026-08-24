@@ -401,11 +401,18 @@ uint16_t LDC1314Component::read_channel_(uint8_t channel) {
     ESP_LOGW(TAG, "Channel %u: DATA%u reads recovered", channel, channel);
   }
 
-  bool error = (raw & (DATA_ERR_UR | DATA_ERR_OR | DATA_ERR_WD | DATA_ERR_AE)) != 0;
-  // Log only on error-state transition, not every errored conversion: ERR_ALE is asserted on
-  // every conversion on this board (design_decisions.md "Persistent amplitude errors are
-  // tolerated, not chased"), so at 100 Hz per-conversion logging is 300 lines/s (.plan Part 1.2).
-  // A running count still accumulates below for the periodic summary.
+  // DATA_ERR_AE is deliberately NOT in this mask. On this board it is asserted on *every*
+  // conversion on all three channels -- measured, not assumed: the error summary reported 994
+  // errors per 10.0 s against a ~99 Hz poll rate, i.e. 100%. Including it pinned the per-channel
+  // `problem` binary sensor at true forever, which made it worthless as an alarm and, worse,
+  // meant a genuinely dead I2C bus (which raises the same flag via the read-failure path above)
+  // could not change it. The underlying amplitude condition is permanent and physically
+  // unfixable here -- R_P is below the device's supported floor, see design_decisions.md
+  // "Persistent amplitude errors are tolerated, not chased" -- so it is reported through
+  // read_status_() instead, where it is diagnosed by name and cannot drown a real fault.
+  bool error = (raw & (DATA_ERR_UR | DATA_ERR_OR | DATA_ERR_WD)) != 0;
+  // Log only on error-state transition, not every errored conversion (.plan Part 1.2): a
+  // persistent condition must cost one line, not one per poll.
   if (error != this->channel_error_state_[channel]) {
     this->channel_error_state_[channel] = error;
     if (error) {
@@ -494,7 +501,15 @@ void LDC1314Component::read_status_() {
 
   static const uint16_t ERROR_BITS =
       STATUS_ERR_UR | STATUS_ERR_OR | STATUS_ERR_WD | STATUS_ERR_AHE | STATUS_ERR_ALE | STATUS_ERR_ZC;
-  if (status & ERROR_BITS) {
+  uint16_t error_bits = status & ERROR_BITS;
+  // Same rule as read_channel_()'s transition gate, and for the same measured reason: ERR_ALE is
+  // permanently asserted on this board, so an unconditional line here was one DEBUG message every
+  // second forever (~86k/day). Compare only the error bits -- ERR_CHAN rotates 0/1/2 between
+  // reads, so comparing the whole register would suppress nothing.
+  bool changed = !this->last_status_error_bits_known_ || error_bits != this->last_status_error_bits_;
+  this->last_status_error_bits_known_ = true;
+  this->last_status_error_bits_ = error_bits;
+  if (error_bits != 0 && changed) {
     uint8_t err_chan = (status >> STATUS_ERR_CHAN_SHIFT) & STATUS_ERR_CHAN_MASK;
     // Naming the individual bits matters: unlike DATAx.ERR_AE (which OR-es the two amplitude
     // conditions together) STATUS separates them, so this is the only place that says whether
@@ -507,6 +522,8 @@ void LDC1314Component::read_status_() {
              (status & STATUS_ERR_AHE) ? " amplitude-high(reduce idrive)" : "",
              (status & STATUS_ERR_ALE) ? " amplitude-low(raise idrive)" : "",
              (status & STATUS_ERR_ZC) ? " zero-count" : "");
+  } else if (error_bits == 0 && changed) {
+    ESP_LOGD(TAG, "STATUS: all error bits cleared");
   }
   this->status_clear_warning();
 }

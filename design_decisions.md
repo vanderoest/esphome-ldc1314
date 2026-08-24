@@ -77,8 +77,16 @@ Running log of significant architectural *why* decisions made while producing `.
 
 **Decision:** The driver publishes every conversion result regardless of `STATUS`, and does not
 attempt to configure its way out of a standing amplitude error. `DATAx.ERR_WD` (watchdog timeout,
-which the datasheet defines as invalid data) is the one flag that suppresses a reading; under-range,
-over-range and amplitude flags publish normally and only raise the diagnostic binary sensor.
+which the datasheet defines as invalid data) is the one flag that suppresses a reading; under-range
+and over-range publish normally and raise the diagnostic binary sensor.
+
+`DATAx.ERR_AE` is the exception: it publishes normally but does **not** raise the binary sensor.
+Measured on hardware 2026-08-24, it is asserted on 100 % of conversions on all three channels (994
+errors per 10.0 s at a ~99 Hz poll rate), which pinned the `problem` entity at true permanently.
+An alarm that is always on is not an alarm -- and it actively hid the one thing that entity is
+good for, since a dead I2C bus raises the same flag and so could no longer change it. The
+amplitude condition still surfaces through `STATUS`, where the high/low bits are named
+individually, which is more diagnostic than the OR-ed `ERR_AE` bit was anyway.
 
 **Context:** On the HomeWizard watermeter board, `ERR_ALE` (amplitude-low) is asserted on every
 channel on every conversion. An investigation established:
@@ -240,9 +248,13 @@ This is enforced in three different places, because there are three different ki
   which is what it exists for -- and the interpretable view of coil health is the watermeter's own
   `signal_quality`. A driver-only config with no `watermeter:` block to feed can't use `internal:`,
   so it holds its named sensors to the same ceiling with a stock `throttle: 200ms` filter.
-- **The driver's own publishes** (`read_channel_()`) skip repeats that carry no information: a
-  second consecutive NAN, or an unchanged error-flag state. ESPHome binary sensors don't dedupe
-  themselves, so without this an idle error flag was 100 identical states/s/channel.
+- **The driver's own publishes and logs** skip repeats that carry no information: a second
+  consecutive NAN, an unchanged error-flag state, an I2C read failure that is still failing, or a
+  `STATUS` read whose set of asserted error bits hasn't changed. ESPHome binary sensors don't
+  dedupe themselves, so without this an idle error flag was 100 identical states/s/channel; the
+  `STATUS` line was one DEBUG message per second forever. Note the `STATUS` gate compares only the
+  error bits, not the whole register -- `ERR_CHAN` rotates between channels from read to read and
+  would defeat a naive comparison.
 
 **Why:** The rate that makes the *measurement* work is not the rate that makes the *entity* useful.
 100 Hz is genuinely needed to resolve the rotor; nothing on a dashboard or in a recorder database
