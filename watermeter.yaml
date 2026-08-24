@@ -69,11 +69,17 @@ watermeter:
   initial_value: 0
 
 sensor:
+  # Every ldc1314 sensor here is `internal:`: the 100 Hz raw codes exist to feed the decoder, and
+  # nothing else. They are deliberately NOT mirrored to Home Assistant, not even smoothed --
+  # a raw 12-bit code carries no meaning without its envelope, 5 Hz is too coarse to analyse
+  # anyway, and it would write long-term statistics forever for a number nobody reads. Use the
+  # `LDC trace capture` switch for real inspection (full-rate, unfiltered, to the log), and
+  # `Signal quality` below for the interpretable version of coil health.
   - platform: ldc1314
     ldc1314_id: ldc
     channel: 0
     id: coil_0
-    internal: true          # 100 Hz raw codes feed the decoder, never Home Assistant
+    internal: true          # see the note above -- no ldc1314 sensor is exposed to HA
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1
@@ -84,7 +90,7 @@ sensor:
     ldc1314_id: ldc
     channel: 1
     id: coil_1
-    internal: true          # 100 Hz raw codes feed the decoder, never Home Assistant
+    internal: true          # idem
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1
@@ -95,44 +101,13 @@ sensor:
     ldc1314_id: ldc
     channel: 2
     id: coil_2
-    internal: true          # 100 Hz raw codes feed the decoder, never Home Assistant
+    internal: true          # idem
     rcount: 0x04D6
     settlecount: 0x0020
     fin_divider: 1
     fref_divider: 2
     idrive: 23
     offset: 0x3BBB             # ratio_lo 0.2363 minus ~0.003 margin
-  # The dashboard-facing view of the raw channels. coil_0/1/2 above (what watermeter: actually
-  # reads) stay completely raw, unfiltered and `internal:` -- a sensor filter changes the entity's
-  # real state, not just its display, so smoothing was deliberately kept off the source sensors and
-  # applied here instead, on independent `copy` entities.
-  #
-  # `send_every: 20` is the rate limit, not the smoothing: the window still averages every one of
-  # the 100 samples/s, but only one result per 20 samples (5 Hz) is published. Publishing at the
-  # full acquisition rate meant 300 states/s over the API for three channels nobody reads at that
-  # resolution -- and these are the only ldc1314 entities HA sees at all, so this is where the
-  # project's 5 Hz publish ceiling has to be enforced.
-  - platform: copy
-    source_id: coil_0
-    name: "LDC Channel 0 Raw (smoothed)"
-    filters:
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 20        # 100 Hz / 20 = 5 Hz to Home Assistant
-  - platform: copy
-    source_id: coil_1
-    name: "LDC Channel 1 Raw (smoothed)"
-    filters:
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 20        # 100 Hz / 20 = 5 Hz to Home Assistant
-  - platform: copy
-    source_id: coil_2
-    name: "LDC Channel 2 Raw (smoothed)"
-    filters:
-      - sliding_window_moving_average:
-          window_size: 10
-          send_every: 20        # 100 Hz / 20 = 5 Hz to Home Assistant
   - platform: watermeter
     watermeter_id: meter
     volume:

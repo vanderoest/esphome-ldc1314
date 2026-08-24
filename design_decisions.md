@@ -231,10 +231,15 @@ This is enforced in three different places, because there are three different ki
 - **The decoder** reads the raw channel sensors at the full 100 Hz -- that's the point of the fast
   poll. Those sensors are therefore `internal: true` in `watermeter.yaml`: they exist to feed
   `watermeter:`, and Home Assistant never sees them at all.
-- **Dashboard views of the raw channels** are separate `copy` entities with
-  `send_every: 20` (100 Hz / 20 = 5 Hz), or, in a driver-only config with no `watermeter:` block to
-  feed, a `throttle: 200ms` filter on the source sensor itself. Both are stock ESPHome filters --
-  no component-side rate limiting was added for this.
+- **Nothing mirrors those raw channels into Home Assistant.** Smoothed `copy` entities at 5 Hz
+  were tried and then removed: a raw 12-bit code means nothing without its envelope, 5 Hz with a
+  100 ms averaging window is too coarse to actually diagnose anything (at ~1 rev/s it smears a
+  tenth of a revolution and leaves 5 points per revolution), and via `copy`'s inherited
+  `state_class` it wrote long-term statistics forever for a number nobody interprets. Real
+  inspection uses the `LDC trace capture` switch -- full rate, unfiltered, straight to the log,
+  which is what it exists for -- and the interpretable view of coil health is the watermeter's own
+  `signal_quality`. A driver-only config with no `watermeter:` block to feed can't use `internal:`,
+  so it holds its named sensors to the same ceiling with a stock `throttle: 200ms` filter.
 - **The driver's own publishes** (`read_channel_()`) skip repeats that carry no information: a
   second consecutive NAN, or an unchanged error-flag state. ESPHome binary sensors don't dedupe
   themselves, so without this an idle error flag was 100 identical states/s/channel.
