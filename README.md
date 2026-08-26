@@ -12,6 +12,10 @@ layout and are out of scope entirely for now — see `design_decisions.md` for t
 Register-level background: `register_map.md` and `docs/knowledge_base.md`. This README only
 covers using the component — it does not repeat register documentation.
 
+The watermeter application built on this driver (rotation decoding, volume, flow, and setting the
+meter reading to match the physical meter) is documented separately in
+`components/watermeter/README.md`.
+
 ## Configurations in this repository
 
 | File | What it is |
