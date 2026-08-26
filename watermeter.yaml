@@ -20,6 +20,19 @@ wifi:
 api:
   encryption:
     key: !secret api_encryption_key
+  # One-shot "match the physical meter" hook for scripts/automations: call
+  # esphome.watermeter_set_total with {"liters": 1234567} from Home Assistant. The component
+  # stores the difference against its own counted volume as a persistent install offset (NVS),
+  # so counting simply continues from the value you give here. `actions:` is ESPHome >=2025.5;
+  # on older versions this key is called `services:` with `- service: set_total`.
+  actions:
+    - action: set_total
+      variables:
+        liters: float
+      then:
+        - watermeter.set_total:
+            id: meter
+            value: !lambda 'return liters;'
 
 ota:
   - platform: esphome
@@ -112,6 +125,7 @@ sensor:
     watermeter_id: meter
     volume:
       name: "Water"
+      id: water_total     # read back by the "Set meter reading" number below
     flow_rate:
       name: "Water flow"
     angle:
@@ -162,3 +176,31 @@ binary_sensor:
     continuous_flow:
       name: "Possible leak"
       min_duration: 30min
+
+number:
+  # The same set_total as the API action above, but as a real entity on the device page so the
+  # reading can be matched to the physical meter by hand, in m3 like the dials on the meter.
+  # The `lambda` mirrors the current total back into the box (so it shows the stand instead of a
+  # stale input), while `set_action` writes a new one. This is deliberately not a stored value of
+  # its own: setting it only moves the component's persistent install offset in NVS, so the
+  # authoritative total stays the `Water` sensor and counting continues from whatever is typed
+  # here -- across reboots, OTA updates and a Home Assistant reinstall.
+  - platform: template
+    name: "Set meter reading"
+    id: meter_reading_input
+    entity_category: config
+    icon: mdi:counter
+    unit_of_measurement: "m³"
+    min_value: 0
+    max_value: 100000
+    step: 0.001
+    mode: box
+    update_interval: 60s
+    lambda: |-
+      if (std::isnan(id(water_total).state))
+        return {};
+      return id(water_total).state / 1000.0;   // component counts litres, this entity is m3
+    set_action:
+      - watermeter.set_total:
+          id: meter
+          value: !lambda 'return x * 1000.0;'
