@@ -206,12 +206,12 @@ class LDC1314Component : public PollingComponent, public i2c::I2CDevice {
   static constexpr uint16_t INVALID_RAW_ = 0xFFFF;
 
   // STATUS is diagnostic only and costs a full extra I2C transaction; read it on a slow cadence
-  // independent of update_interval rather than every poll (design_decisions.md / .plan Part 1.3).
+  // independent of update_interval rather than every poll (design_decisions.md).
   static constexpr uint32_t STATUS_READ_INTERVAL_MS_ = 1000;
   uint32_t last_status_read_ms_{0};
 
   // Per-channel error-state logging: a line only on transition, plus a periodic count -- avoids
-  // flooding the log when a channel's error flag is asserted on every conversion (.plan Part 1.2).
+  // flooding the log when a channel's error flag is asserted on every conversion.
   static constexpr uint32_t ERROR_SUMMARY_INTERVAL_MS_ = 10000;
   bool channel_error_state_[MAX_CHANNELS]{};
   uint32_t channel_error_count_[MAX_CHANNELS]{};

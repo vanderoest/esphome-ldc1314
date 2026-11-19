@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline analysis of an ldc1314 raw-trace capture (TRACE,<millis>,<ch0>,<ch1>,<ch2> lines).
 
-Settles the open questions from .plan Part 1 / TODO.md Phase A:
+Answers the open questions from the original bring-up analysis:
   - is the alpha/beta locus a clean circle (Clarke applies) or not (fall back to ellipse fit)?
   - what are the actual inter-coil phase angles and amplitudes (vs. the assumed ideal 120 deg)?
   - which channel leads, and does forward flow give increasing or decreasing theta?
@@ -415,9 +415,9 @@ def main():
     print(f"\nlocus circularity: r mean={r_mean:.3f} std={r_std:.3f} "
           f"(coefficient of variation {100 * r_std / r_mean:.1f}%)")
     if r_std / r_mean < 0.15:
-        print("  -> reasonable circle: proceed with Clarke as planned (.plan decision gate)")
+        print("  -> reasonable circle: proceed with Clarke as planned (original decision gate)")
     else:
-        print("  -> distorted locus: consider the ellipse-fit fallback noted in .plan")
+        print("  -> distorted locus: consider the ellipse-fit fallback (noted in the original plan)")
 
     # --- real inter-coil phase angles and amplitudes, fit against the bootstrap angle ---
     x0 = (w0 - mid0) / amp0

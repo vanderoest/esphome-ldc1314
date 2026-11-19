@@ -28,7 +28,7 @@ struct DecoderConfig {
   // crossing requirement) and both were defeated by real hardware noise floors that turned out to
   // vary session-to-session in ways neither threshold anticipated -- one produced steady phantom
   // rotation, the other still let an occasional false "rotating" through even after requiring a
-  // full extra second of sustained crossing (TODO.md Phase D). A confirmed accumulation event is
+  // full extra second of sustained crossing. A confirmed accumulation event is
   // categorically different: by the time it fires it has already passed the calibration gate, the
   // r_min signal-quality gate, AND the hysteresis threshold below, so it inherits all of that
   // protection for free instead of needing its own separately-tuned noise ceiling. At this
@@ -50,21 +50,21 @@ struct DecoderConfig {
   // suppressed while r = hypot(alpha, beta) is below this. Diagnoses a detached/failing coil as a
   // collapse in r; also naturally low during the initial envelope-fill period before amp is
   // known. Needs empirical tuning -- observed locus r has ~20% ripple even when healthy
-  // (captures/2026-08-21_*, TODO.md Phase A harmonic-content finding), so this must sit well
+  // (captures/2026-08-21_* harmonic-content finding), so this must sit well
   // below 1.0, not close to it.
   float r_min = 0.3f;
 
   // Hysteresis threshold in radians: the tracked angle theta_c only follows the raw
   // atan2()-derived theta once they differ by more than this. This is what makes the accumulator
   // noise-proof -- see design_decisions.md "hysteresis vs deadband". 10 degrees by default
-  // (~0.1745 rad), chosen in .plan against the measured ~4-5 degrees of dither this hardware
+  // (~0.1745 rad), chosen against the measured ~4-5 degrees of dither this hardware
   // produces at rest.
   float hysteresis_rad = 0.17453293f;  // 10 degrees
 };
 
 // Pure algorithm: envelope normalisation -> Clarke transform -> atan2 -> hysteresis-tracked angle
 // -> accumulated angle. No ESPHome includes anywhere in this translation unit, deliberately --
-// see CLAUDE.md and .plan "Validation": this must compile and run on a desktop so it can be
+// this must compile and run on a desktop so it can be
 // tested against captured traces before it ever touches hardware.
 class RotationDecoder {
  public:
@@ -82,12 +82,12 @@ class RotationDecoder {
   void update(const float raw[3], double timestamp_s);
 
   // Net signed accumulated rotation since construction (or since the last reset()), in radians.
-  // This is the one quantity .plan's decoder contract promises -- everything else here is
+  // This is the one quantity the decoder contract promises -- everything else here is
   // diagnostic.
   double accumulated_angle_rad() const { return this->accumulated_rad_; }
   double revolutions() const;
 
-  // Diagnostics, mirroring the sensor set .plan's YAML contract publishes in Phase D.
+  // Diagnostics, mirroring the sensor set the YAML layer publishes in Phase D.
   float signal_quality() const { return this->last_r_; }  // last r = hypot(alpha, beta)
   float angle_rad() const { return this->last_theta_; }   // last raw (pre-hysteresis) theta
   bool rotating() const { return this->rotating_; }

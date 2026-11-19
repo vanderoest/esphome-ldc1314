@@ -19,7 +19,7 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_RUNNING,
         ),
         # min_duration is a friendlier front for the standard delayed_on filter (reused, not
-        # reimplemented -- CLAUDE.md) rather than requiring the user to write
+        # reimplemented) rather than requiring the user to write
         # `filters: [delayed_on: ...]` themselves on a raw binary_sensor.
         cv.Optional(CONF_CONTINUOUS_FLOW): binary_sensor.binary_sensor_schema(
             device_class=DEVICE_CLASS_MOISTURE,

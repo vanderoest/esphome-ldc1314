@@ -39,8 +39,8 @@ static const char *const TAG = "ldc1314";
 static const double INTERNAL_OSCILLATOR_HZ = 43.4e6;
 
 // §8.1.6, multi-channel: valid fINx is < fREFx/4, i.e. ratio < 0.25. Only equivalent to
-// "DATA < 1024" at gain 1 / offset 0 -- see run_preflight_()'s ratio computation, and .plan Part 1
-// item 5 for why the DATA-only form was wrong the moment gain/offset tuning applies.
+// "DATA < 1024" at gain 1 / offset 0 -- see run_preflight_()'s ratio computation, and the
+// original plan's item 5 for why the DATA-only form was wrong the moment gain/offset tuning applies.
 static const double RATIO_CLOCK_LIMIT = 0.25;
 
 static const char *const VERDICT_MET = "MET";

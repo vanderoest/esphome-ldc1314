@@ -42,15 +42,15 @@ external_components:
 i2c:
   sda: GPIO26
   scl: GPIO25
-  frequency: 400kHz         # 50 kHz cannot sustain 100 Hz -- see .plan Part 1.4
+  frequency: 400kHz         # 50 kHz cannot sustain 100 Hz at full rate
 
 ldc1314:
   - id: ldc
     address: 0x2A
-    update_interval: 10ms   # 100 Hz -- see .plan Part 1.1 (Phase A trace capture)
+    update_interval: 10ms   # 100 Hz -- full-rate acquisition for the decoder
     reference_clock: internal
     deglitch: 10MHZ
-    output_gain: 8            # Phase B register tuning -- see TODO.md; per-channel offset below
+    output_gain: 8            # Phase B register tuning; per-channel offset below
                                # is fitted just under each channel's own measured minimum ratio
     high_current_drive: false
     sensor_activation_mode: FULL_CURRENT

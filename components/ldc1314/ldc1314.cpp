@@ -135,7 +135,7 @@ void LDC1314Component::update() {
 
   // STATUS is read-to-clear diagnostic-only state; at fast update_interval it is not worth a
   // full extra I2C transaction every cycle, so it runs on its own slow cadence instead
-  // (.plan Part 1.3). When it does fire, it still runs before the DATAx reads below, per
+  // (see design_decisions.md). When it does fire, it still runs before the DATAx reads below, per
   // docs/knowledge_base.md "Error handling", so a second channel's error isn't dropped from
   // attribution by an out-of-order DATAx read.
   if (now - this->last_status_read_ms_ >= STATUS_READ_INTERVAL_MS_) {
@@ -411,7 +411,7 @@ uint16_t LDC1314Component::read_channel_(uint8_t channel) {
   // "Persistent amplitude errors are tolerated, not chased" -- so it is reported through
   // read_status_() instead, where it is diagnosed by name and cannot drown a real fault.
   bool error = (raw & (DATA_ERR_UR | DATA_ERR_OR | DATA_ERR_WD)) != 0;
-  // Log only on error-state transition, not every errored conversion (.plan Part 1.2): a
+  // Log only on error-state transition, not every errored conversion: a
   // persistent condition must cost one line, not one per poll.
   if (error != this->channel_error_state_[channel]) {
     this->channel_error_state_[channel] = error;
@@ -476,8 +476,8 @@ void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) cons
     return;
 
   // One CSV line per update() cycle -- `ts,ch0,ch1,ch2,...` over the active channels -- so a
-  // capture session is `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a raw-trace
-  // log line"; used by Phase A's offline analysis in `tools/`).
+  // capture session is `esphome logs | grep TRACE, > trace.csv` (used by the offline analysis
+  // in `tools/`).
   // Stack buffer instead of str_sprintf(): no heap churn at 100 Hz, and str_sprintf() moved out of
   // helpers.h in ESPHome 2026.11. Worst case "TRACE," + 10 digits + 4 x ",65535" = 40 chars.
   char line[64];

@@ -37,7 +37,7 @@ void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
       this->amp_[i] = (hi - lo) / 2.0f;
     }
     // 5.0 codes, not the original 0.5: found on real hardware, not in review. At the gain-8
-    // tuning (TODO.md Phase B), steady-state LSB dither alone reaches amp ~0.5-1.0 -- comfortably
+    // tuning, see watermeter.yaml), steady-state LSB dither alone reaches amp ~0.5-1.0 -- comfortably
     // above the old 0.5 threshold -- so a meter that never rotates during the whole bootstrap
     // window would "fill" from pure noise and permanently lock in a calibration ~30-50x smaller
     // than the true signal amplitude (~34-48 codes, captures/2026-08-21_phaseb-gain8-offset.csv).
@@ -59,7 +59,7 @@ void RotationDecoder::update_envelope_(const float ordered[3], double dt) {
   }
 
   // Frozen: an envelope that keeps decaying toward a parked rotor's resting value destroys the
-  // transform the moment flow resumes (.plan "Normalise") -- mid/amp simply hold their last
+  // transform the moment flow resumes -- mid/amp simply hold their last
   // known-good values until rotating_ (recent confirmed motion, see its declaration in the
   // header) says the rotor is moving again.
   if (!this->rotating_)
@@ -185,7 +185,7 @@ void RotationDecoder::update(const float raw[3], double timestamp_s) {
 
     // The hysteresis gate: theta_c_ (and with it the accumulator) only moves once the raw angle
     // has pulled more than hysteresis_rad away from it. At rest this holds theta_c_ dead still
-    // through the LSB dither documented in TODO.md Phase B; at any real rotation speed it still
+    // through the LSB dither documented in the gain-8 capture; at any real rotation speed it still
     // tracks to within one hysteresis quantum. See design_decisions.md "hysteresis vs deadband"
     // for why a deadband on the per-sample delta was rejected instead.
     if (std::fabs(delta) > this->config_.hysteresis_rad) {

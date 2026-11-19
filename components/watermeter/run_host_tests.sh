@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compiles and runs the RotationDecoder host test harness -- .plan "Validation" step 3.
+# Compiles and runs the RotationDecoder host test harness.
 # No ESPHome, no board: this is what makes the decoder testable before it ever touches hardware.
 set -euo pipefail
 cd "$(dirname "$0")"

@@ -10,8 +10,7 @@ DEPENDENCIES = ["ldc1314"]
 LDC1314TraceSwitch = ldc1314_ns.class_("LDC1314TraceSwitch", switch.Switch, cg.Component)
 
 # Single-entity platform: turning it on enables the TRACE,<ts>,<ch0>,<ch1>,<ch2> log line
-# (ESP_LOGD) on every update() cycle -- for Phase A trace capture (.plan Part 1, "Add a raw-trace
-# log line"). ALWAYS_OFF: a capture session is something started deliberately each boot, not
+# (ESP_LOGD) on every update() cycle -- for raw-trace capture sessions. ALWAYS_OFF: a capture session is something started deliberately each boot, not
 # something that should silently resume after a reset.
 CONFIG_SCHEMA = switch.switch_schema(
     LDC1314TraceSwitch,

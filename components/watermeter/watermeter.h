@@ -79,7 +79,7 @@ class WatermeterComponent : public Component {
   void set_continuous_flow_binary_sensor(binary_sensor::BinarySensor *s) { this->continuous_flow_binary_sensor_ = s; }
 
   // `watermeter.set_total` action: re-aligns the published reading to the physical meter face by
-  // solving install_offset = x - measured_volume, per .plan "Persistence and meter alignment".
+  // solving install_offset = x - measured_volume, so counting continues from the value given.
   void set_total(double liters);
 
   // Learn-pass support (Phase D's `button:`): capture per-phase mid/amp over a window covering
@@ -136,7 +136,7 @@ class WatermeterComponent : public Component {
   // The exact accumulators -- double, never float. At a 1.2 M litre install reading, float's
   // ~7 significant digits can't represent a 0.028 L hysteresis increment at all; double's ~15-17
   // keeps the error bounded to one ULP per publish instead of compounding across the meter's
-  // life. See TODO.md Phase D and design_decisions.md "accumulator must not be a float".
+  // life. See design_decisions.md "accumulator must not be a float".
   double measured_l_{0};
   double reverse_l_{0};
   double install_offset_l_{0};
@@ -159,7 +159,7 @@ class WatermeterComponent : public Component {
   uint32_t last_accumulator_publish_ms_{0};
 
   // Persistence, rate-limited by both volume delta and elapsed time -- the time floor is what
-  // bounds flash wear (.plan "Storage"): at peak flow the volume delta alone would trigger a
+  // bounds flash wear: at peak flow the volume delta alone would trigger a
   // write every ~0.3 s.
   ESPPreferenceObject pref_;
   float save_threshold_l_{1.0f};
@@ -171,8 +171,8 @@ class WatermeterComponent : public Component {
   uint32_t name_hash_{0};
 
   // Flow rate: a sliding window, forced to zero after a no-increment timeout rather than decaying
-  // toward zero slowly once flow actually stops (.plan "Outputs"). The window itself stays an
-  // internal constant (watermeter.cpp) since .plan doesn't call for tuning it, but the no-flow
+  // toward zero slowly once flow actually stops. The window itself stays an
+  // internal constant (watermeter.cpp) since nothing calls for tuning it, but the no-flow
   // timeout is meter-specific (see set_no_flow_timeout_s()) and is exposed as config.
   double flow_window_start_l_{0};
   uint32_t flow_window_start_ms_{0};

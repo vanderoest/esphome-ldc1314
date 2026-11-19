@@ -1,4 +1,4 @@
-// Host test harness for RotationDecoder -- .plan "Validation" step 3: compile the class on the
+// Host test harness for RotationDecoder: compile the class on the
 // desktop and replay captured traces, checked against both known ground truth (the operator's
 // ~10 L bucket draw) and the tools/ Python prototype's findings on the same windows.
 //
@@ -158,7 +158,7 @@ void test_phaseb_gain8_offset(const std::string &capture_dir) {
   check(rest2_drift < 0.02, "gain-8 capture, post-pour rest: near-zero drift");
 
   // Regression check for the field bug found after real calibration: signal_quality reading
-  // 1.15-1.20+ isn't itself wrong (the locus has ~20% ripple, TODO.md Phase A), but a "rotating"
+  // 1.15-1.20+ isn't itself wrong (the locus has ~20% ripple, captures/2026-08-21_*), but a "rotating"
   // false-positive from noise letting the envelope erode would show up as r climbing unbounded
   // over an extended rest period, not settling. Replay the whole post-pour rest segment on a
   // single decoder and track the max -- this doesn't reproduce the exact session-dependent noise
@@ -197,7 +197,7 @@ void test_no_nan_across_full_files(const std::string &capture_dir) {
   }
 }
 
-// TODO.md Phase D: "accumulate in double, never float" -- the failure mode (a float accumulator
+// Design rule, now tested: "accumulate in double, never float" -- the failure mode (a float accumulator
 // silently freezing once its ULP exceeds the hysteresis quantum) is invisible on a bench test
 // starting from zero, so it has to be checked at a realistic install reading instead. This is not
 // exercising WatermeterComponent itself (it depends on ESPHome's runtime, not host-testable) --
@@ -311,7 +311,7 @@ void test_envelope_persistence_round_trip() {
 // codes barely moving at all (captures/log3.txt from the field). Neither existing capture
 // exercises "sits at rest indefinitely, never rotates even once" -- both eventually show real
 // motion -- so this synthesizes exactly that: pure +-1 code dither, symmetric, no net drift,
-// matching the measured diff histogram from TODO.md Phase B (ch0: 189 down / 190 up).
+// matching the measured diff histogram from the gain-8 capture (ch0: 189 down / 190 up).
 void test_no_phantom_rotation_from_pure_dither() {
   watermeter_core::RotationDecoder decoder;
   const float base[3] = {105.0f, 159.0f, 118.0f};  // realistic gain-8 resting values (log3.txt)
@@ -321,7 +321,7 @@ void test_no_phantom_rotation_from_pure_dither() {
 
   for (int i = 0; i < 5000; i++) {  // 50s simulated at 100 Hz -- far longer than the bootstrap window
     // Bounded oscillation around a FIXED center -- toggles between base and base+1, exactly the
-    // shape measured at rest on real hardware (e.g. ch0: 146<->147, TODO.md Phase B). Not a
+    // shape measured at rest on real hardware (e.g. ch0: 146<->147, gain-8 capture). Not a
     // cumulative random walk: `+=` here would drift unboundedly over 5000 samples and isn't what
     // real dither does (a first version of this test made exactly that mistake).
     float raw[3] = {

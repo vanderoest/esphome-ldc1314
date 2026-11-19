@@ -1,6 +1,8 @@
 # Design Decisions
 
-Running log of significant architectural *why* decisions made while producing `.plan`, kept separate from `.plan` (the *what*/*how*) so the reasoning survives even if the plan itself is later revised. Newest entries at the bottom.
+Running log of significant architectural *why* decisions, kept separate from the implementation (the *what*/*how*) so the reasoning survives even if the plan itself is later revised. Newest entries at the bottom.
+
+(The original planning documents this log was written alongside are private working notes; every decision below is self-contained.)
 
 ---
 
@@ -12,7 +14,7 @@ Running log of significant architectural *why* decisions made while producing `.
 - A single monolithic sensor component exposing 4 hard-coded channel slots as one big config block.
 - One `sensor:` platform instance per channel with *no* shared hub, each independently owning I2C address/config (would duplicate global-register writes and risk races between "channel components" all trying to configure the same physical device).
 
-**Why:** This matches the device itself — one physical I2C device with one set of global registers, but up to 4 independently-configurable channels, each optionally present or absent (LDC1312 has 2, LDC1314 has 4). It also mirrors the established ESPHome idiom for exactly this device shape: the ADS1115 component (a multi-channel I2C ADC) uses the identical hub + per-channel `sensor:` pattern, confirmed via `esphome.io/components/sensor/ads1115.html` during planning. Reusing that pattern satisfies CLAUDE.md's "reuse existing ESPHome component patterns" requirement directly, rather than inventing a new shape for a problem ESPHome has already solved.
+**Why:** This matches the device itself — one physical I2C device with one set of global registers, but up to 4 independently-configurable channels, each optionally present or absent (LDC1312 has 2, LDC1314 has 4). It also mirrors the established ESPHome idiom for exactly this device shape: the ADS1115 component (a multi-channel I2C ADC) uses the identical hub + per-channel `sensor:` pattern, confirmed via `esphome.io/components/sensor/ads1115.html` during planning. Reusing an established pattern rather than inventing a new shape for a problem ESPHome has already solved.
 
 ---
 
@@ -35,7 +37,7 @@ Running log of significant architectural *why* decisions made while producing `.
 **Alternatives considered:**
 - Add an optional "distance" or "flow" output mode with a user-supplied calibration curve.
 
-**Why:** This is a direct instruction in CLAUDE.md ("Do NOT implement watermeter logic"), but the engineering reason behind that instruction is worth recording: the mapping from a raw conversion code to a physical quantity (distance, flow) depends on sensor geometry, target material, and mounting — all application- and installation-specific, not device-specific. Baking any of that into the driver would make it non-reusable outside one specific watermeter design, and would require the driver to carry calibration state that has nothing to do with talking to the LDC1314 chip. Keeping the boundary at "raw measurement out" keeps the driver generically useful for *any* inductive-sensing application (knobs, encoders, buttons, flow — CLAUDE.md's own feature list), matching the datasheet's own framing of the device as a frequency-ratio converter, not a distance sensor.
+**Why:** The engineering reason for keeping this boundary is worth recording explicitly: the mapping from a raw conversion code to a physical quantity (distance, flow) depends on sensor geometry, target material, and mounting — all application- and installation-specific, not device-specific. Baking any of that into the driver would make it non-reusable outside one specific watermeter design, and would require the driver to carry calibration state that has nothing to do with talking to the LDC1314 chip. Keeping the boundary at "raw measurement out" keeps the driver generically useful for *any* inductive-sensing application (knobs, encoders, buttons, flow — the datasheet's own list of valid applications), matching the datasheet's own framing of the device as a frequency-ratio converter, not a distance sensor.
 
 ---
 
@@ -46,7 +48,7 @@ Running log of significant architectural *why* decisions made while producing `.
 **Alternatives considered:**
 - Provide a built-in "differential channel pair" or "quadrature decoder" helper in the component, since it's a common pattern across LDC use cases.
 
-**Why:** Same boundary as the raw-values decision above, but worth calling out separately because it's tempting to treat "combine two channels" as a device capability rather than application logic — it isn't. The LDC1314 has no awareness of what its channels are being used for; a decoder that assumes "channel 0 and channel 1 are 90° out of phase on a rotating target" is encoding assumptions about a *specific* sensor/target mechanical design, which is exactly the kind of watermeter-specific logic CLAUDE.md excludes. It also has no natural home in a generic driver: it isn't a register, isn't a device mode, and doesn't generalize to the encoder-knob, button, or keypad use cases the datasheet lists as equally valid applications of this same chip.
+**Why:** Same boundary as the raw-values decision above, but worth calling out separately because it's tempting to treat "combine two channels" as a device capability rather than application logic — it isn't. The LDC1314 has no awareness of what its channels are being used for; a decoder that assumes "channel 0 and channel 1 are 90° out of phase on a rotating target" is encoding assumptions about a *specific* sensor/target mechanical design, which is exactly the kind of watermeter-specific application logic that would fence the device in. It also has no natural home in a generic driver: it isn't a register, isn't a device mode, and doesn't generalize to the encoder-knob, button, or keypad use cases the datasheet lists as equally valid applications of this same chip.
 
 ---
 
@@ -57,7 +59,7 @@ Running log of significant architectural *why* decisions made while producing `.
 **Alternatives considered:**
 - Design a bespoke structure optimized specifically for the LDC1314's register layout.
 
-**Why:** CLAUDE.md explicitly requires reusing existing ESPHome component patterns instead of inventing new ones, and states the driver should "always follow current ESPHome architecture." ADS1115 is the closest existing multi-channel I2C measurement component in ESPHome core to what the LDC1314 needs (shared I2C hub, independently configured channels, each publishing one raw sensor value) — using it as the template turns most of the Phase 5 architecture decisions into "match the precedent" rather than "invent and justify," which is both faster to implement correctly and easier for ESPHome maintainers to review later (upstream readiness).
+**Why:** Reusing existing ESPHome component patterns instead of inventing new ones keeps the component idiomatic and easier for ESPHome maintainers to review (upstream readiness). ADS1115 is the closest existing multi-channel I2C measurement component in ESPHome core to what the LDC1314 needs (shared I2C hub, independently configured channels, each publishing one raw sensor value) — using it as the template turns most of the Phase 5 architecture decisions into "match the precedent" rather than "invent and justify," which is both faster to implement correctly and easier for ESPHome maintainers to review later (upstream readiness).
 
 ---
 
@@ -122,7 +124,7 @@ framework — a six-stage state machine that entered TI's auto-amplitude mode, d
 once the above was established: it existed to find drive parameters that would clear the amplitude
 error, and on this hardware no such parameters exist. Configuration is YAML-only again, and effort
 moves to application-level decoding (Clarke transform, rotation detection, litre counting), which
-per `CLAUDE.md` lives outside this component.
+by this same layering lives outside this component.
 
 **What remains from it:** the on-demand datasheet-conformance report (`button:` platform), which
 is what identified the `DEGLITCH` violation, plus the `STATUS` per-bit decoding and register write
@@ -260,8 +262,8 @@ This is enforced in three different places, because there are three different ki
 100 Hz is genuinely needed to resolve the rotor; nothing on a dashboard or in a recorder database
 benefits from sub-200 ms resolution of a coil's raw code, and pushing it there costs API bandwidth,
 recorder writes and log volume for no gain. The watermeter's own sensors already follow this rule
-from the other direction (accumulators publish on change, diagnostics capped to 1 Hz -- see
-TODO.md Phase D, rounds 3 and 4); this is the same rule applied to the driver's side.
+from the other direction (accumulators publish on change, diagnostics capped to 1 Hz -- from
+review rounds 3 and 4); this is the same rule applied to the driver's side.
 
 The same reasoning applies to logging, and the section above already noted it as an open bug: an
 error condition that persists must log on transition, never per poll. Both remaining unthrottled

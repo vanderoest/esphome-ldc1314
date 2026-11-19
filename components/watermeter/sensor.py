@@ -28,12 +28,12 @@ UNIT_LITRE_PER_MINUTE = "L/min"
 
 # All optional and independent -- pick whichever outputs you want, same shape as the driver's own
 # per-channel sensor:/binary_sensor: blocks but as named sub-keys on one platform entry (the
-# scd4x/sht4x shape from .plan's YAML contract) rather than a repeated list.
+# scd4x/sht4x shape) rather than a repeated list.
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_WATERMETER_ID): cv.use_id(WatermeterComponent),
-        # state_class: total, not total_increasing -- see design_decisions.md /
-        # .plan "Home Assistant semantics" for why: a meter that subtracts reverse flow can
+        # state_class: total, not total_increasing -- see design_decisions.md for why: a meter that
+        # subtracts reverse flow can
         # decrease, and total_increasing reads any decrease as a meter replacement.
         cv.Optional(CONF_VOLUME): sensor.sensor_schema(
             unit_of_measurement=UNIT_LITRE,

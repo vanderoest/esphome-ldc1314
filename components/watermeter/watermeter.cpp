@@ -49,7 +49,7 @@ struct PersistedStateV1 {
   double reverse_l;
 };
 
-// Flow-rate sliding window. Not exposed as YAML config -- .plan's YAML contract doesn't call for
+// Flow-rate sliding window. Not exposed as YAML config -- nothing calls for
 // tuning this. Widened from an original 10s: at low flow (this meter's own Q1, ~0.10 L/min, gives
 // one hysteresis-confirmed step only every ~16.7s) a 10s window either catches zero steps (reads
 // 0) or one step's full increment averaged over a partial window (overestimates) -- neither is an
@@ -264,7 +264,7 @@ void WatermeterComponent::on_phase_sample_() {
         this->measured_l_ += delta_l;
       } else {
         // Reverse motion is tracked as a diagnostic regardless of reverse_mode_; only whether it
-        // also subtracts from the published total depends on the mode (.plan "reverse: ignore").
+        // also subtracts from the published total depends on the mode (`reverse: ignore`).
         this->reverse_l_ += -delta_l;
         if (this->reverse_mode_ == WATERMETER_REVERSE_SUBTRACT)
           this->measured_l_ += delta_l;
@@ -380,8 +380,8 @@ void WatermeterComponent::publish_diagnostics_(bool force) {
 void WatermeterComponent::update_flow_rate_(uint32_t now_ms) {
   // Force-zero path: report "flow stopped" as soon as the timeout elapses rather than waiting for
   // the sliding window to close, which could otherwise show a stale nonzero rate for seconds
-  // after the tap was actually shut (.plan "Outputs": "forced to zero after a no-increment
-  // timeout").
+  // after the tap was actually shut -- forced to zero after a no-increment timeout, not left
+  // decaying.
   if (!this->flow_rate_is_zero_ && (now_ms - this->last_increment_ms_) > this->no_flow_timeout_ms_) {
     if (this->flow_rate_sensor_ != nullptr)
       this->flow_rate_sensor_->publish_state(0.0f);
