@@ -14,3 +14,4 @@ __pycache__/
 CLAUDE.md
 TODO.md
 .plan
+.ci/

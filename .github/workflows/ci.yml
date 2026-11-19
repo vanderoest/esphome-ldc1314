@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host-tests:
+    name: RotationDecoder host tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run against the captured traces
+        run: components/watermeter/run_host_tests.sh
+
+  config-validation:
+    name: ESPHome config validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ESPHome
+        run: pip install esphome
+      - name: Validate all configs against the local components
+        run: .github/scripts/validate-configs.sh
