@@ -478,17 +478,20 @@ void LDC1314Component::log_trace_(uint32_t now, const uint16_t *raw_values) cons
   // One CSV line per update() cycle -- `ts,ch0,ch1,ch2,...` over the active channels -- so a
   // capture session is `esphome logs | grep TRACE, > trace.csv` (.plan Part 1, "Add a raw-trace
   // log line"; used by Phase A's offline analysis in `tools/`).
-  std::string line = str_sprintf("TRACE,%u", static_cast<unsigned>(now));
+  // Stack buffer instead of str_sprintf(): no heap churn at 100 Hz, and str_sprintf() moved out of
+  // helpers.h in ESPHome 2026.11. Worst case "TRACE," + 10 digits + 4 x ",65535" = 40 chars.
+  char line[64];
+  size_t pos = buf_append_printf(line, sizeof(line), 0, "TRACE,%u", static_cast<unsigned>(now));
   for (uint8_t channel = 0; channel < MAX_CHANNELS; channel++) {
     if (!this->channels_[channel].active())
       continue;
     if (raw_values[channel] == INVALID_RAW_) {
-      line += ",NAN";
+      pos = buf_append_printf(line, sizeof(line), pos, ",NAN");
     } else {
-      line += str_sprintf(",%u", raw_values[channel]);
+      pos = buf_append_printf(line, sizeof(line), pos, ",%u", static_cast<unsigned>(raw_values[channel]));
     }
   }
-  ESP_LOGD(TAG, "%s", line.c_str());
+  ESP_LOGD(TAG, "%s", line);
 }
 
 void LDC1314Component::read_status_() {
