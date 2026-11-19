@@ -3,6 +3,7 @@
 tests/.esphome/
 secrets.yaml
 tests/secrets.yaml
+tools/.venv
 
 # Python bytecode cache from ESPHome's codegen import of components/
 __pycache__/
